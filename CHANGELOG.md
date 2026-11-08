@@ -7,14 +7,83 @@ Authored by Travis A. Bryan I.
 
 ## [Unreleased]
 
+## [1.15.0]
+
+**Six client functions this addon calls had been removed from the game, and
+nothing said so.**
+
+A recording from a live 12.1.5 client (`/cn capture`) listed them:
+`GetMerchantItemInfo`, `GetCoinTextureString`,
+`C_TaskQuest.GetQuestsForPlayerByMapID`, `C_TradeSkillUI.GetTradeSkillLine`,
+`EJ_GetCurrentInstance` and `C_Heirloom.GetHeirloomItemIDFromIndex`. Every
+call is guarded, which is right, and which is also why none of them made a
+sound: each guard went false and its feature stopped. Vendors were no longer
+recorded, world quests stopped appearing on maps, heirlooms were not
+counted, and the Adventure Guide restore lost its anchor. This is the case
+the API-surface audit exists for, and it needed a recording from the client
+that has the change.
+
+### Fixed
+
+- **Vendors are recorded again.** `C_MerchantFrame.GetItemInfo`, one table
+  per slot, replaces the removed global, which was the gate on the whole
+  merchant read.
+
+- **World quests and bonus objectives are back on the map.**
+  `C_TaskQuest.GetQuestsOnMap` replaces the removed call; its rows spell the
+  id `questID`, and the old `questId` is still accepted.
+
+- **Vendor prices show as coins** through
+  `C_CurrencyInfo.GetCoinTextureString`.
+
+- **Heirlooms are counted** from `C_Heirloom.GetHeirloomItemIDs`, the whole
+  list at once.
+
+- **The Adventure Guide is put back on the instance it was showing**, read
+  from Blizzard's own guide frame now that `EJ_GetCurrentInstance` is gone.
+
+- **The open profession is read from `GetBaseProfessionInfo` only.** It
+  already came first; the removed fallback is gone.
+
+- **Four Markdown files had their dashes and quotes double-encoded.** The
+  changelog, the readme, the roadmap and the CurseForge description had been
+  saved through a Windows code page at some point, so every em dash read as
+  `â€”` in the repository. The text the game shows was never affected, and
+  the description on CurseForge was pasted from a clean copy. The bytes are
+  repaired; no wording changed.
+
+- **The audit judges the names this build calls.** A recording lists what
+  the client lacked from the surface of the build that took it, so a name
+  since moved off read as a failure forever. It counts only names still
+  called, and prints the others as no longer called.
+
+Of the nineteen functions the 12.1.5 patch notes list as removed, this addon
+called none; the six above went earlier and were never announced. The test
+doubles now model the 12.1.5 calls with the fields the client returns.
+
+### Changed
+
+- **Interface `120105, 120107`.** The live client (12.1.5) and the current
+  PTR (12.1.7), so the PTR does not report the addon as out of date either.
+
+- **The recording the stub audit reads is from 12.1.5.** The audit refuses an
+  `## Interface` newer than the client the recording came from, which is the
+  rule working as intended: a claim of support is only as good as the client
+  it was checked on.
+
+- **The organization is `Dam-Beaver-Studios`.** The GitHub organization was
+  renamed from `Dam-Beaver-Studios-LLC`; the release toolkit, the CI status
+  script and the CurseForge description now name it. GitHub redirects the old
+  addresses, so existing clones and links keep working.
+
 ## [1.14.0]
 
 **`.\cn.ps1 check` said "All checks passed" on a machine where it had never
 parsed a single Lua file.**
 
 Two of its verifications are skipped when the tool or the recording is absent
-â€” the syntax check needs `luac` on PATH, the stub audit needs a captured
-recording â€” and both were written as grey notes while the summary went on
+— the syntax check needs `luac` on PATH, the stub audit needs a captured
+recording — and both were written as grey notes while the summary went on
 claiming everything passed. The sentence is true and is read, correctly, as a
 claim about the repository.
 
@@ -30,7 +99,7 @@ two toolchains and not the other.
 - **Skips are counted, named, and printed in the summary.** `skip  the syntax
   check` in its own colour, and a bottom line that reads "Everything that could
   run here passed. 1 verification(s) skipped: the syntax check. CI runs all of
-  them." Still not a failure, still the same non-blocking behaviour â€” the
+  them." Still not a failure, still the same non-blocking behaviour — the
   bottom line simply can no longer overstate what was done.
 
 - **The release rehearsal asserts it by name.** Both skip sites are checked
@@ -42,7 +111,7 @@ two toolchains and not the other.
 **1.12.0 made the checks run before the tag, and made them run twice.**
 
 `cn.ps1 release` pushes the commit and, once it is green, pushes the tag. Both
-pushes fire the workflow on the *same* commit â€” so the second run repeated the
+pushes fire the workflow on the *same* commit — so the second run repeated the
 mutation suite, the coverage run and the performance budgets against a tree
 that had just passed them. Fifty minutes of runner time to learn the same
 thing twice. And `branches: '**'` ran all of it on every push to every branch,
@@ -51,14 +120,14 @@ including work in progress.
 ### Fixed
 
 - **A commit is verified once.** A step on the tag run asks GitHub whether a
-  completed, successful run already exists for this exact SHA â€” excluding the
-  run asking the question, which is itself in that list â€” and the eleven
+  completed, successful run already exists for this exact SHA — excluding the
+  run asking the question, which is itself in that list — and the eleven
   verification steps stand down if one does. It is deliberately not "skip the
   checks on a tag": a tag pushed without a prior green run (`-NoWait`, a
   `-Retag`, a tag pushed by hand) finds nothing and every check runs. The
   guarantee is *this commit passed*, not *somebody ran the checks at some
   point*. The release rehearsal asserts the negative branch exists, because
-  without it this change quietly becomes "tags are never checked" â€” which is
+  without it this change quietly becomes "tags are never checked" — which is
   the opposite of what 1.12.0 was for.
 
 - **The release branch, not every branch.** `'**'` was a wider door than the
@@ -66,8 +135,8 @@ including work in progress.
   every work-in-progress push. A tag is only ever cut from the release branch.
 
 - **A busy machine could fail a release on nothing.** The performance budgets
-  include ratio gates â€” 200 stops against 90, to catch a change in the shape of
-  the curve rather than its height â€” and each half was a mean over a single
+  include ratio gates — 200 stops against 90, to catch a change in the shape of
+  the curve rather than its height — and each half was a mean over a single
   batch. On a contended machine the two halves pick up different amounts of
   other people's work, so the ratio drifts: it reads 4.99x to 5.03x on an idle
   container and 5.76x against a 5.60x ceiling while the coverage run is going.
@@ -82,11 +151,11 @@ including work in progress.
 
 - **`ImproveRoute` was left alone.** It is the largest measured path in the
   addon at 17.5 ms for a 200-stop route, and its 2-opt inner loop takes three
-  square roots per candidate swap where two would do â€” the edge leaving a
+  square roots per candidate swap where two would do — the edge leaving a
   segment does not depend on the segment's start, and could be cached. It was
   not, for two reasons. The path sits at 29% of its 60 ms budget and every
   other measured path is further inside its own. And the last optimisation of
-  this exact loop â€” 0.57.0's don't-look bits â€” silently produced *longer*
+  this exact loop — 0.57.0's don't-look bits — silently produced *longer*
   routes for 290 of 3,000 cases, worst case 27.7%, while its release notes
   said "exactly the same route"; a cache with an invalidation rule is the same
   class of risk in the same twenty lines. Speeding up a function that is
@@ -99,14 +168,14 @@ including work in progress.
 existed.**
 
 The release tagged first and pushed second, and the workflow ran on tags only
-â€” so the first time anything on a runner looked at a release was after the
+— so the first time anything on a runner looked at a release was after the
 point of no return. The recovery from a failure there is `-Retag`: delete the
 tag locally, delete it on the remote, cut it again. That has been needed four
 times.
 
 Navigator Data's toolchain got this first, in its 0.20.0. Nineteen releases of
 finding checks that existed over there and not here, and this is the first
-time the missing half was on this side â€” which is the argument for comparing
+time the missing half was on this side — which is the argument for comparing
 the two mechanically rather than by noticing.
 
 ### Fixed
@@ -114,14 +183,14 @@ the two mechanically rather than by noticing.
 - **The release pushes the commit, waits for the checks, and tags only then.**
   The commit is the thing being tested and is cheap to supersede; the tag is
   what the packager reads and what a store page is cut from. A failing run
-  says `NO TAG HAS BEEN CUT` and stops â€” the version files already carry the
+  says `NO TAG HAS BEEN CUT` and stops — the version files already carry the
   version, so the second attempt has nothing to write. `-NoWait` cuts the tag
   immediately for a release that has to go out now.
 
 - **The workflow runs its checks on every push and its packaging on a tag.**
   Splitting the trigger is only half of it: without guarding the publishing
   steps, every push to any branch would upload to CurseForge, and with no tag
-  at HEAD the packager publishes an ALPHA â€” 0.61.0's failure once per commit.
+  at HEAD the packager publishes an ALPHA — 0.61.0's failure once per commit.
   Both halves are asserted, in both directions, so guarding a check or
   unguarding a publish fails the suite.
 
@@ -130,7 +199,7 @@ the two mechanically rather than by noticing.
   neither is something the author can fix in the moment. The wait says so
   plainly and lets the release proceed; the tag is recoverable, a release
   blocked by a missing token is not. A remote that is not GitHub is skipped
-  outright, which is also the case the release rehearsal exercises â€” it pushes
+  outright, which is also the case the release rehearsal exercises — it pushes
   to a local path, and that must never reach the network.
 
 ## [1.11.0]
@@ -142,7 +211,7 @@ ones were.**
 window and the heads-up line redraw themselves, so they correct silently and
 that is right. Chat cannot. A player who ran `/cn next` in the first seconds
 of a session read "Next: X" with "this may change" under it, the lockout list
-arrived, the top of the list became Y â€” and the last thing the addon had said
+arrived, the top of the list became Y — and the last thing the addon had said
 to them was still X, with no way to tell whether the caveat had come to
 anything.
 
@@ -151,7 +220,7 @@ anything.
 - **The caveat is resolved.** When `/cn next` prints a provisional answer, the
   addon watches until the outstanding requests are answered and says one line
   if the answer changed: "The replies landed: Y rather than X." If the answer
-  held â€” the common case, and it has to stay silent â€” nothing is printed, and
+  held — the common case, and it has to stay silent — nothing is printed, and
   `/cn go` after a correction goes to the answer on screen rather than the one
   it replaced. A request that never comes back gives up after twenty seconds
   rather than watching for the session, because a correction that arrives a
@@ -165,13 +234,13 @@ anything.
 
 - **The settle detection is a poll, and deliberately.** The alternative is a
   handler on `UPDATE_INSTANCE_INFO` and another on `MAIL_INBOX_UPDATE`, which
-  is a third place that has to know which systems exist â€” the thing the
+  is a third place that has to know which systems exist — the thing the
   registry was built to stop. It asks the registry the same question the
   notice asks, once a second, and only while an answer is outstanding: a
   handful of ticks after a loading screen and none at all thereafter.
 
 - **The files that present the caveat are declared and checked in both
-  directions.** 1.10.0's real hole was not in the function â€” removing the call
+  directions.** 1.10.0's real hole was not in the function — removing the call
   from all three surfaces left every assertion in the suite passing. The three
   were then asserted by hand, which covers the three that exist and does
   nothing about the fourth. The suite now scans the source for consumers of
@@ -186,7 +255,7 @@ anything.
 1.9.0 built a registry so every system that asks the server for something can
 say whether it asked and whether it was answered. It shipped with one reader:
 `/cn selftest`. So in the seconds after a loading screen the addon knew,
-precisely, that the lockout list had not come back â€” and the recommendation
+precisely, that the lockout list had not come back — and the recommendation
 engine, which ranks instances by what you are saved to, went on printing a
 confident headline and a Why block from data it could have said was
 incomplete. A dungeon you are already saved to is a real recommendation to a
@@ -198,9 +267,9 @@ mind a second later.
 - **The answer says when it is provisional.** `/cn next`, the heads-up line
   and the main window now carry one sentence while a request the ranking
   depends on is outstanding: "Still hearing back about your lockouts and your
-  mailbox; this may change." The answer is still shown â€” an addon that shows
+  mailbox; this may change." The answer is still shown — an addon that shows
   nothing for four seconds after every loading screen is worse than one that
-  shows a caveat â€” it just stops claiming more than it knows. In chat and in
+  shows a caveat — it just stops claiming more than it knows. In chat and in
   the window the line goes ABOVE the answer, in the position the group notice
   already uses, because it changes how to read what follows; in the Why block
   it sits above the reasons rather than among them, since "the lockout list
@@ -219,9 +288,9 @@ mind a second later.
 - **Quest titles are deliberately not in the notice.** An outstanding title
   changes what a row is called; nothing in the ranking reads a name. Including
   them would also have made the heads-up line flip between a reason and a
-  caveat every few seconds during ordinary play â€” titles go outstanding
+  caveat every few seconds during ordinary play — titles go outstanding
   continuously, which is what `CN.burstInvalidationEvents` debounces
-  `QUEST_DATA_LOAD_RESULT` for â€” for a caveat that was not true of the answer.
+  `QUEST_DATA_LOAD_RESULT` for — for a caveat that was not true of the answer.
   They stay registered and stay in `/cn selftest`, which is the reader their
   count was written for.
 
@@ -235,14 +304,14 @@ mind a second later.
 **Four copies of one pattern, and the first thing to read across them asked
 the wrong question.**
 
-Six releases found client systems this addon read and never asked for â€” the
+Six releases found client systems this addon read and never asked for — the
 lockout list, the keystone, the inbox, the item cache, quest titles. Each fix
 grew the same four parts in a different file: a send, a once-per-segment
 latch, a forget on a loading screen, and a flag saying the answer arrived.
 1.8.0 then added the first thing that reads across them, and it reported
 anything not *answered* rather than anything *asked and not answered*. On a
-client with no `RequestRaidInfo` and no `CheckInbox` â€” where nothing was asked
-and nothing can be â€” `/cn selftest` said the addon was still waiting for
+client with no `RequestRaidInfo` and no `CheckInbox` — where nothing was asked
+and nothing can be — `/cn selftest` said the addon was still waiting for
 replies it had never asked for and never could, permanently.
 
 ### Changed
@@ -260,7 +329,7 @@ replies it had never asked for and never could, permanently.
 
 - The keystone is still deliberately unregistered, for the reason 1.5.0 gave:
   it has no event saying its answer arrived, so it would report *asked* and
-  never *answered* â€” permanently outstanding for every character that holds no
+  never *answered* — permanently outstanding for every character that holds no
   keystone. A system with no answering signal contributes nothing here, and
   saying so beats a line that is always wrong.
 
@@ -274,7 +343,7 @@ replies it had never asked for and never could, permanently.
 ## [1.8.0]
 
 Six releases found systems this addon read from the client and never asked
-for. All four are asked for now â€” and until this release nothing said which of
+for. All four are asked for now — and until this release nothing said which of
 them the addon was still waiting to hear back about.
 
 ### Added
@@ -297,12 +366,12 @@ them the addon was still waiting to hear back about.
 
 - **The fixture pins added for a branch are asserted to reach that branch.**
   1.6.0 added a quest pin to exercise an untested branch, gave it an odd id,
-  and this fixture's client answers "completed" for every odd id below 70000 â€”
+  and this fixture's client answers "completed" for every odd id below 70000 —
   so it was dropped before reaching anything and the new assertions passed
   over a world that did not contain it. Each pin added for a reason now
   carries an assertion naming that reason.
 - **And the first version of that check was worse than nothing.** It asserted
-  that every pin lands in one of offered / in-log / completed â€” true by
+  that every pin lands in one of offered / in-log / completed — true by
   construction, unable to fail, and unable to catch the defect it was written
   for, because a dropped pin lands in "completed": that is *how* it was
   dropped. Replaced with the narrow assertion the rule actually asks for.
@@ -316,7 +385,7 @@ them the addon was still waiting to hear back about.
 
 **1.6.0's latch closed the one case the test fixture modelled and neither of
 the two the client actually produces.** It stopped the addon asking for a
-quest title while a request was in flight â€” and the handler for the answer
+quest title while a request was in flight — and the handler for the answer
 clears that flag on *every* reply, including `success = false` and including a
 success that carries no title. Both are ordinary answers from the client, and
 both put the quest straight back into the state that starts a request. The
@@ -326,7 +395,7 @@ real client almost never gives.
 
 **And 1.6.0's comment described an escape hatch that was never built.** It
 reads *cleared on a loading screen rather than never, because a refusal can be
-transientâ€¦ a latch with no way out turns a momentary refusal into a permanent
+transient… a latch with no way out turns a momentary refusal into a permanent
 one.* Nothing cleared it. That is worse than the missing behaviour: the next
 reader checks the note instead of the code. Both tables are cleared on a
 loading screen now, and a test asserts it.
@@ -341,7 +410,7 @@ loading screen now, and a test asserts it.
 - **A stub written above the line where `CN` is declared does nothing,
   silently.** The first draft of the refusing-server stub read the addon table
   through a global that is nil at call time and guarded it with `if CN and
-  â€¦` â€” so it looked careful and fired no events, and the mutation it was
+  …` — so it looked careful and fired no events, and the mutation it was
   written to kill survived while every assertion passed. This file already
   documents that trap beside another stub; the note is now beside this one
   too.
@@ -361,7 +430,7 @@ system immediately.
 
 **A quest the server will not describe was asked about every two seconds, for
 ever.** `Blizzard.GetQuestTitle` records the request in `CN.pendingQuestLoads`
-and the handler for the answer clears it â€” and nothing ever read it before
+and the handler for the answer clears it — and nothing ever read it before
 asking again. The candidate provider calls this for every uncached quest pin
 on the map and for up to twenty offers in three neighbouring zones, and it
 rebuilds every two seconds, so a quest id the client has no data for produced
@@ -384,7 +453,7 @@ read.
 - The two `PLAYER_ENTERING_WORLD` handlers in `Modules/Instances.lua` are one
   handler. 1.5.0 added the second to clear the lockout answer, leaving two
   halves of one thing in two places that happened to be registered in the
-  right order â€” clear the answer, then re-ask â€” with nothing saying so.
+  right order — clear the answer, then re-ask — with nothing saying so.
   Moving either block would have credited the previous segment's reply to the
   new one.
 
@@ -397,7 +466,7 @@ read.
   name and never answers about, which is an ordinary state in game.
 - **And the first version of that pin was invisible.** The fixture client
   answers "completed" for every odd quest id below 70000, so an odd pin is
-  dropped by the availability filter and reaches nothing â€” it passed every
+  dropped by the availability filter and reaches nothing — it passed every
   assertion by not existing.
 
 ## [1.5.0]
@@ -407,7 +476,7 @@ both were of a shape those releases had already named.
 
 **An item name the client had not cached was asked for again on every look.**
 1.4.0 added the request and shipped it unlatched, under a comment arguing that
-the client de-duplicates a load already in flight. It does â€” and that says
+the client de-duplicates a load already in flight. It does — and that says
 nothing about the same miss happening again on the next rebuild.
 `Modules/Vendors.lua` measures its own loop at 2,503 lookups per rebuild and
 that provider rebuilds every five seconds, so a cold item cache meant thousands
@@ -418,7 +487,7 @@ now.
 
 **An unanswered lockout request was reported as a clear week.** 1.2.0 found
 that the addon read the lockout list and never asked for it, and sent the
-request â€” and left the other half alone: "the server has not answered yet" and
+request — and left the other half alone: "the server has not answered yet" and
 "you are saved to nothing" both arrive as a count of zero, and
 `/cn instances` printed *You are not saved to anything* for both. That is worst
 in exactly the moment the request was added for, the first seconds after a
@@ -429,7 +498,7 @@ The keystone is deliberately left as it is. It has no event that says "the
 answer arrived", so a third state there would replace a briefly wrong *you
 have no keystone* with a permanently wrong *still asking* for every character
 that genuinely holds none. Where there is no signal, the honest thing is to
-say nothing rather than to invent one â€” noted here so the omission is a
+say nothing rather than to invent one — noted here so the omission is a
 decision rather than an oversight.
 
 ### How defects were found
@@ -438,7 +507,7 @@ decision rather than an oversight.
   unlatched request had a two-clause argument beside it; the first clause was
   true and the second was never traced to the loop it sits in.
 - **Every benchmark runs with a warm cache**, so the miss branch of the
-  item-name accessor â€” the one that talks to the client â€” has never been
+  item-name accessor — the one that talks to the client — has never been
   measured. The guard is an exact count in the suite instead: five hundred
   looks at the same uncached item must send no further requests.
 - **A count of zero cannot distinguish an empty answer from no answer**, and
@@ -448,15 +517,15 @@ decision rather than an oversight.
 
 ## [1.4.0]
 
-The question 1.2.0 and 1.3.0 kept asking â€” *who sends the request?* â€” has now
+The question 1.2.0 and 1.3.0 kept asking — *who sends the request?* — has now
 found four systems. This release found the last two, and one of them is the
 most time-critical thing the addon tracks.
 
 **Expiring mail was invisible.** `GetInboxNumItems()` answers zero until the
 client has been handed the inbox, and `CheckInbox()` is what asks the server
-for it. `/cn waiting` carried a sentence explaining this to the player â€” *"No
-mail, or the mailbox has not been opened this session â€” the client only hands
-the addon the inbox once you have looked at it"* â€” so the limitation was
+for it. `/cn waiting` carried a sentence explaining this to the player — *"No
+mail, or the mailbox has not been opened this session — the client only hands
+the addon the inbox once you have looked at it"* — so the limitation was
 understood and apologised for rather than removed. An addon does not need the
 player to walk to a mailbox. The candidate provider had no such sentence and
 simply emitted nothing, which means mail whose attachments are about to be
@@ -471,7 +540,7 @@ answers a request, and the branch this addon *prefers* does not make one.
 `C_Item.GetItemNameByID` reads the cache and returns nil; `GetItemInfo` is the
 call that queues an asynchronous load as a side effect, and it is the
 fallback. So on any modern client the addon took the path that never asks and
-then waited for an answer that could not come â€” a defect created by the fix
+then waited for an answer that could not come — a defect created by the fix
 for its own symptom, and invisible on a client old enough to take the other
 branch.
 
@@ -485,20 +554,20 @@ branch.
   by a stub that skips a precondition the client enforces.
 - **`GetItemInfo` did not exist in the test client at all**, so the fallback
   branch of a function eleven call sites depend on had never once been
-  executed â€” a branch that could only be reasoned about, in a file whose
+  executed — a branch that could only be reasoned about, in a file whose
   header exists to make client behaviour testable.
 
 ## [1.3.0]
 
 1.2.0 found a system the addon was listening to and never asking. This release
-asked that question of everything else, and found the third one â€” and then
+asked that question of everything else, and found the third one — and then
 found that the fix for a *different* defect had stopped at the language
 boundary and left the addon's own toolkit behind.
 
 **The keystone was never asked for.** `C_MythicPlus.GetOwnedKeystoneLevel()`
 reads a table the client fills only after `C_MythicPlus.RequestMapInfo()`;
 until then it answers zero, and the guard in `Waiting.Keystone` reads a zero as
-"this character has no keystone" â€” the right answer for the wrong reason, for
+"this character has no keystone" — the right answer for the wrong reason, for
 the whole session, unless the player happened to open the Mythic+ UI, which
 sends the request for them. So `/cn waiting`'s keystone row and the keystone's
 own deadline were silently absent. Third instance of the same shape in two
@@ -506,14 +575,14 @@ releases; the lockout fix swept for its siblings in the provider files and this
 one lives in a module and never went through `Blizzard` at all.
 
 **`cn.ps1 harvest` could not carry a turn-in location.** The addon began
-recording where a quest was handed in â€” the one coordinate the client can
-never re-supply â€” in 1.0.0. The companion data addon learned to carry it in its
+recording where a quest was handed in — the one coordinate the client can
+never re-supply — in 1.0.0. The companion data addon learned to carry it in its
 0.8.0 and to stop dropping such rows in its 0.9.0. The addon's *own* toolkit,
 which is the primary path into `Data/Quests.lua` and the one that file's header
 points at, had never mentioned the field: a row located only by its hand-in was
 counted as having no coordinates and dropped, and a row with both emitted only
 the pick-up. Both fixes were followed by the call-site grep this project
-requires â€” and the grep was run over the Lua tree, and both writers are
+requires — and the grep was run over the Lua tree, and both writers are
 PowerShell.
 
 ### How defects were found
@@ -528,7 +597,7 @@ PowerShell.
   the client enforces.
 - **A call-site sweep stops at the language boundary unless it is told not
   to.** `cn.ps1`'s harvest emitter is now checked against the field block at
-  the top of `Data/Quests.lua` â€” every coordinate field the schema documents
+  the top of `Data/Quests.lua` — every coordinate field the schema documents
   must be one the emitter can produce, read from the documentation rather than
   from a list kept beside the check.
 
@@ -537,14 +606,14 @@ PowerShell.
 1.1.0 added "the client's item cache" to the list of systems a provider must
 declare, and wrote down why: the weak part of an enumeration is the entry
 nobody thought of. Asking that question again found the answer sitting one
-file away, with its own event already registered â€” and a second system that
+file away, with its own event already registered — and a second system that
 had a handler for an answer to a question the addon never asked.
 
 **The addon was listening for the lockout list and never asking for it.**
 `GetNumSavedInstances` reads a table the client does not populate on its own:
-`RequestRaidInfo()` asks the server, and `UPDATE_INSTANCE_INFO` â€” which the
+`RequestRaidInfo()` asks the server, and `UPDATE_INSTANCE_INFO` — which the
 instances provider has declared all along, under a comment reading *the client
-saying so* â€” is the answer arriving. Without the request the count is zero for
+saying so* — is the answer arriving. Without the request the count is zero for
 the whole session unless the player happens to open the Raid Info frame, which
 sends it for them. So every lockout-shaped answer this addon gives was
 silently empty for somebody who logged in and asked what to do next:
@@ -557,7 +626,7 @@ for the calendar.
 **Quest titles arriving in the background were announced in chat, one line
 each.** `Blizzard.GetQuestTitle(id, true)` asks the server for a title the
 client has not cached, and the handler for the answer printed it. Every path
-that reaches that handler is a background one â€” the candidate provider walking
+that reaches that handler is a background one — the candidate provider walking
 this map's quest pins, the same provider walking up to twenty offers in three
 neighbouring zones, the map-pin sweep, `Chase`. There is no player-facing path
 into it at all. So crossing into a zone whose pins the client had not cached
@@ -568,7 +637,7 @@ nobody had looked at yet.
 provider renders "Quest 84732" while it waits, and nothing told it the answer
 had come: the title landed in the metadata store and the ranked list went on
 showing the number until an unrelated quest event happened along. Exactly the
-defect 1.1.0 fixed for the item cache, on its sibling system â€” one that
+defect 1.1.0 fixed for the item cache, on its sibling system — one that
 already had the event, the handler and the store, and no line joining them to
 the screen.
 
@@ -595,7 +664,7 @@ the screen.
   a read.
 - **A requested quest title never arrived in the test client either.**
   `RequestLoadQuestByID` recorded the id and changed nothing, so the answer was
-  the same before and after â€” and the whole point of the call is that it is
+  the same before and after — and the whole point of the call is that it is
   not. Every test of that path was exercising the failure branch, including
   the one that fires the success event.
 - **Capturing `CN.Print` intercepts nothing.** Every module binds
@@ -610,7 +679,7 @@ answer arrived and the questions asked about it were the old ones.**
 
 **A quest this addon first meets at its hand-in was recorded as being offered
 there.** 1.0.0 gave the harvest record a field that says exactly what a
-turn-in coordinate is â€” and left the first-sighting case writing it under the
+turn-in coordinate is — and left the first-sighting case writing it under the
 other name, because the setter that fills a blank field ran first. A player
 who installs the addon halfway through a quest had that quest exported with
 the turn-in NPC's position as its quest giver, into `/cn export`, into
@@ -618,7 +687,7 @@ Navigator Data's staging, and from there into a file whose header reads *every
 row in this file was checked by a person*. The coordinate is real, the map is
 real, and the claim about it is wrong, which is the one kind of defect a
 curation pipeline cannot catch. Such a row now records the hand-in, records no
-pick-up, and says so in the export â€” and it is still counted and exported,
+pick-up, and says so in the export — and it is still counted and exported,
 because a turn-in is a location and three separate places had been asking
 `x and y` since long before there was a second kind.
 
@@ -627,11 +696,11 @@ because a turn-in is a location and three separate places had been asking
 asynchronously. Two providers read that cache and neither declared its event,
 so `/cn next` in the first seconds after a login read "Start: item 71715" and
 nothing ever re-asked. The vendor-recipe provider was worse: it joins vendor
-stock to recipes *by name*, so it emitted nothing at all â€” a player who logged
+stock to recipes *by name*, so it emitted nothing at all — a player who logged
 in and asked what to do next was told about no vendor-sold recipe until they
 happened to open a shop. `Modules/Inventory.lua` has carried the rule since
-0.86.0 â€” *a provider must declare the events of every system it reads, not of
-the system it is named after* â€” and the item cache had never been counted as a
+0.86.0 — *a provider must declare the events of every system it reads, not of
+the system it is named after* — and the item cache had never been counted as a
 system.
 
 ### Changed
@@ -642,13 +711,13 @@ system.
   seconds after a login. Each fire would have walked every provider to set a
   flag that was already set; the first still lands immediately and the burst
   behind it costs one more pass rather than several hundred. Nothing can be
-  seen to be slower, because marking a provider stale does not rebuild it â€”
+  seen to be slower, because marking a provider stale does not rebuild it —
   the two providers that read the item cache have a five-second cooldown, and
   a mark that lands three quarters of a second late cannot delay a rebuild
   that was not going to happen for five.
 - **`Quests.GetLocation` asks the client a question only when there is an
   answer to use.** It asked whether a quest was ready to hand in *before*
-  asking whether a turn-in location existed â€” a client call per quest, on a
+  asking whether a turn-in location existed — a client call per quest, on a
   function the zone router calls once per stop, for the three curated rows in
   existence. The table lookup decides the branch now.
 - `/cn harvest` says how many of its located rows are located only by where
@@ -658,14 +727,14 @@ system.
 ### How defects were found
 
 - **The item cache is a system.** The provider-event lint had four systems in
-  it â€” the quest log, your bags, where you are standing, what you have
+  it — the quest log, your bags, where you are standing, what you have
   collected. Four is a list somebody wrote; the fifth is the one nobody
   thought of, which is the whole reason the check is structural rather than a
   review.
 - **A fixture item with no name passes every test that does not ask what the
   row is called.** The bag fixture's quest starter had no entry in the test
   client's item table, so it has rendered as "Start: item 60001" in every run
-  this project has ever made â€” including the check added last release that a
+  this project has ever made — including the check added last release that a
   cold item cache still names everything, which could not tell a cold cache
   from a warm one.
 
@@ -674,15 +743,15 @@ system.
 0.99.0 went looking for what a new player hits in their first hour and fixed
 five steps of `/cn setup` that reported a refusal as a success. This release
 audited that fix and found it had broken the same command a different way, for
-a different player â€” which is the shape this project has now found in every
+a different player — which is the shape this project has now found in every
 release for thirty in a row: **the worst defect in a release lives in the
 previous release's own changes.**
 
 **A character who had learned no professions could never finish setup.**
 0.99.0 gave the professions step the same "a zero means the client refused"
 rule as the eight steps beside it. That rule holds for those eight because
-their count is the length of the *client's* list â€” every toy that exists,
-every mount, every title â€” so zero can only be a refusal. Professions count
+their count is the length of the *client's* list — every toy that exists,
+every mount, every title — so zero can only be a refusal. Professions count
 what *this character has learned*, so zero is an ordinary person: every
 character, for its first hours, which is exactly when this command is run. A
 step that reports "not ready" blocks the whole run from being recorded, so the
@@ -693,8 +762,8 @@ itself scanned on the same run the report called it not ready. The refusal is
 now reported by the layer that knows rather than inferred from a count.
 
 **"Refresh what is stale" counted every scan that did not crash.** A cold
-client refuses without crashing â€” that is the whole point of the guards the
-last five releases added â€” so the button answered "Read 12 stale sources" over
+client refuses without crashing — that is the whole point of the guards the
+last five releases added — so the button answered "Read 12 stale sources" over
 twelve sources that were exactly as stale as before, and could never reach
 "Nothing is stale", which is the other half of its own sentence. It counts
 what actually moved now, and has a third answer for the case where nothing
@@ -704,22 +773,22 @@ fix landed at one call site and not at its sibling in the same file*.
 
 **A fresh alt was shown its main's timestamps.** Two of the twelve sources are
 read per character, and the Sources tab dated all twelve from the account-wide
-stamp â€” so the tab whose header is "Where every number in this addon comes
+stamp — so the tab whose header is "Where every number in this addon comes
 from" reported two sources as read today that this character had never read,
 and the stale refresh could not run either of them because both looked fresh.
 
 ### Added
 
 - **The addon records where a quest was handed in.** `turnInMapID` has been a
-  documented field since the three-phase quest model was designed â€” *a quest
-  is a pick up, a do, and a turn in* â€” with a reader, a schema and a curated
+  documented field since the three-phase quest model was designed — *a quest
+  is a pick up, a do, and a turn in* — with a reader, a schema and a curated
   data pipeline behind it, and nothing in the addon had ever written one. The
   backlog carries it as *Later* on the grounds that an independent table was
   needed. What was needed was one line in the `QUEST_TURNED_IN` handler, which
   already ran three lines from the capture that was discarding it. Recorded
   only where the hand-in differs from the pick-up, exported for curation, and
   used as the walking target for a quest that is ready to turn in when the
-  client will not answer â€” labelled as an observation, because that is what it
+  client will not answer — labelled as an observation, because that is what it
   is.
 - **`/cn setup again`** forgets what setup recorded and runs it once more. The
   "you are done" flag was written once and read for the life of the install
@@ -739,26 +808,26 @@ and the stale refresh could not run either of them because both looked fresh.
 
 - **A count is only a refusal signal when it is the client's own list
   length.** Nine steps were given one rule; one of them counts something else.
-  The suite now runs `/cn setup` on a character with no professions â€” a state
+  The suite now runs `/cn setup` on a character with no professions — a state
   the test client had never been in, because its stub has answered with two
   professions since the first release.
 - **The item cache is empty until it is not.** Eleven call sites take an item
-  name from the client and the rule they rely on â€” *unknown names are skipped
-  rather than guessed* â€” had never been exercised. Nothing was found wrong;
+  name from the client and the rule they rely on — *unknown names are skipped
+  rather than guessed* — had never been exercised. Nothing was found wrong;
   the state is now reachable.
 - **The waypoint moves to the hand-in once a quest is ready.** The stub
   answered with one fixed point for the life of a quest, so the only state in
-  which a turn-in location is observable had never existed in the suite â€” and
+  which a turn-in location is observable had never existed in the suite — and
   the addon's failure to record one was invisible with it.
 
 ## [0.99.0]
 
 The last release before 1.0, so this one went looking for what a new player
-hits in their first hour â€” and found the worst defect of the year there.
+hits in their first hour — and found the worst defect of the year there.
 
 **`/cn setup` run on a cold client reported a scan that read nothing as a
-success, and then stopped asking for ever.** Five of the twelve steps â€” toys,
-mounts, pets, titles and appearances â€” never checked whether the game had
+success, and then stopped asking for ever.** Five of the twelve steps — toys,
+mounts, pets, titles and appearances — never checked whether the game had
 answered. The modules themselves had been taught to refuse a cold read in
 0.92.0 and 0.95.0 and to record nothing; setup did not ask, printed the row in
 the success colour, and stamped the "you are done" flag. That flag is checked
@@ -768,7 +837,7 @@ the store page promises the addon "keeps asking until you have", and there was
 no command that got the prompt back.
 
 **And the Collections tab's "Scan everything" button did the same thing from
-the other direction** â€” it treated "the scan did not throw" as "the scan
+the other direction** — it treated "the scan did not throw" as "the scan
 worked", so it stamped the very steps the modules had just refused to stamp.
 Afterwards the Collections tab and the Scans tab both read "just now" over
 empty stores. It counts what was read now, and says so when the answer is
@@ -777,21 +846,21 @@ nothing.
 ### Fixed
 
 - **The one command the addon offers when it has nothing to suggest pointed at
-  the wrong list.** "Try `/cn waiting` for what is on a timer" â€” and
+  the wrong list.** "Try `/cn waiting` for what is on a timer" — and
   `/cn waiting` lists quests you have walked past and never picked up, which
   on a fresh account answers "Nothing remembered yet". The command about
   timers is `/cn clock`. The rename happened three releases ago and this
   caller was left behind; the check added in 0.96.0 verifies that a named
   command *exists*, and this one did.
-- **Two of the twelve sources were missing from the Scans tab** â€” exploration
+- **Two of the twelve sources were missing from the Scans tab** — exploration
   and zone achievements. Exploration is the source most certain to go stale,
   because nothing in the addon ever rescans it on its own, and it was the one
   the staleness screen could not see and the "Refresh what is stale" button
   could not run. That button answered "Nothing is stale" without ever asking.
 - Three numbers on the store page had drifted from the addon: it offered
-  `/cn textsize <100-150>` against a real ceiling of **200** â€” the
+  `/cn textsize <100-150>` against a real ceiling of **200** — the
   accessibility control, quoting a limit corrected inside the addon in 0.88.0
-  â€” said eighteen self-tests against twenty, and described two tabs without a
+  — said eighteen self-tests against twenty, and described two tabs without a
   list where there is one. The offline suite now checks the page's numbers,
   and every command it names, against the tree.
 
@@ -799,7 +868,7 @@ nothing.
 
 **The addon's own curated quest data was being refused at load, and nothing
 said so.** 0.91.0 removed a field from the set the data registrar accepts; the
-shipped row still carried it, so the row was rejected â€” and the rejection was
+shipped row still carried it, so the row was rejected — and the rejection was
 reported to the error collector, which loads *after* the data file, so it
 reached nothing at all. `/cn provenance` reported zero hand-checked rows and
 read exactly like a table nobody had filled in yet. Both halves are fixed: the
@@ -807,8 +876,8 @@ row, and the silence. A complaint made before the collector exists is now held
 and delivered when it arrives.
 
 **For half an hour after every login, the Darkmoon Faire did not exist.** The
-calendar is asynchronous â€” it answers "no events" until the server sends the
-month â€” and the login warm-up cached that answer for thirty minutes. No row in
+calendar is asynchronous — it answers "no events" until the server sends the
+month — and the login warm-up cached that answer for thirty minutes. No row in
 `/cn next`, no map pin, no heads-up line, no "Active events" in `/cn now`.
 Only `/cn events` repaired it, and nothing told you to run it. An empty
 calendar is not cached at all now; a real one still is.
@@ -816,25 +885,25 @@ calendar is not cached at all now; a real one still is.
 ### Fixed
 
 - **Putting a rare off did not stop the alert.** Right-clicking the heads-up
-  line, or `/cn later`, removed the rare from every list â€” and then the addon
+  line, or `/cn later`, removed the rare from every list — and then the addon
   made the one unsolicited noise it is capable of, a sound and a chat line,
   about that exact rare the next time it drifted into range. This was the only
   place in the addon that checked "ignored" without also checking "deferred".
 - **Pinning a reputation as a goal switched off its Warband advice.** Goals
   were marked account-wide whatever they were, and that flag means "the
-  progress carries across your Warband" â€” so the "Bob is better suited,
+  progress carries across your Warband" — so the "Bob is better suited,
   highest standing" verdict was withdrawn for the one faction you had just
   said you cared about, while `/cn goals` went on naming Bob. Two screens
   contradicting each other about one row.
 
 ### Changed
 
-- Two stored values with no reader anywhere â€” a mount's spell id and a pet's
-  type, about 2,700 numbers between them â€” are gone from the two largest
+- Two stored values with no reader anywhere — a mount's spell id and a pet's
+  type, about 2,700 numbers between them — are gone from the two largest
   stores, written at every logout and parsed at every login for nothing.
   Migration 38 removes them from existing databases.
 - `Group.Situation` is still asked once per candidate. A cache for it was
-  written, measured at 11â€“14% of a re-rank that sits well inside its budget,
+  written, measured at 11–14% of a re-rank that sits well inside its budget,
   and reverted: it is only correct while every change to death, group and
   doorway announces itself, and that is not a dependency worth a tenth of a
   millisecond. The measurement is recorded in the file so the next audit does
@@ -844,8 +913,8 @@ calendar is not cached at all now; a real one still is.
 
 **Running `/cn setup` in the first seconds after logging in erased your
 exploration progress and then stopped the addon ever asking you to scan
-again.** The criteria API refuses for a moment after login â€” which is when
-setup is usually run â€” and the exploration scan wrote that refusal into the
+again.** The criteria API refuses for a moment after login — which is when
+setup is usually run — and the exploration scan wrote that refusal into the
 store as a real measurement: every zone's criteria count zeroed, every
 character's progress zeroed. Both the "closest to finishing" list and the
 exploration recommendations filter on a criteria count above zero, so they
@@ -857,31 +926,31 @@ not the other one beside it.
 **Every renown level-up rebuilt your entire faction list twice.** The
 reputation sweep's throttle was stamped by one event handler rather than by
 the sweep, so the login scan, both renown handlers, `/cn repscan` and the
-recommendation pass all ran it and left the throttle unarmed â€” and the next
+recommendation pass all ran it and left the throttle unarmed — and the next
 faction tick immediately ran it again. Each sweep walks every faction three
 times and holds your collapsed reputation headers open while it does.
 
 ### Fixed
 
 - **A faction list the game had not sent yet was recorded as a completed
-  scan** â€” Reputations is the first of the thirteen setup steps, so it is the
+  scan** — Reputations is the first of the thirteen setup steps, so it is the
   most exposed to a cold client, and stamping it stops the reminder for the
   life of the install. Sixth scanner to need that guard.
 - **`/cn drops` matched your lockout by the instance's translated name.** Both
   sides carry the Adventure Guide's own id and the addon compared two
   localized strings from two different game APIs instead. When they differ by
-  anything â€” punctuation, a subtitle, a rename applied to one API and not the
-  other â€” the "locked, resets in 2d 3h" clause silently vanished, which is the
+  anything — punctuation, a subtitle, a rename applied to one API and not the
+  other — the "locked, resets in 2d 3h" clause silently vanished, which is the
   one line that decides whether the trip is worth making. Goals used the same
   path and lost the "you are saved to it and it is cleared" step the same way.
 - **A missing boss list blamed the wrong thing.** The guard refused on a field
   the function never uses and told the player "the client did not name this
-  instance" â€” directly under a row displaying that name.
+  instance" — directly under a row displaying that name.
 
 ### Changed
 
 - The published list of game APIs this addon touches was generated by scanning
-  the toolkit's whole file list, which includes the test harness â€” so an API
+  the toolkit's whole file list, which includes the test harness — so an API
   only the offline stubs mention was reported as one the addon requires.
   `/cn capture` and the fixture audit both read that list.
 
@@ -890,7 +959,7 @@ times and holds your collapsed reputation headers open while it does.
 **Reloading on the same day moved today's quest count into "yesterday", about
 half the time.** The addon works out which day it is from when the next quest
 reset falls, and the game does not answer that question immediately after you
-log in â€” so the addon estimates, and the estimate lands on a different day
+log in — so the addon estimates, and the estimate lands on a different day
 from the true reset for roughly half of all login times. It then took its own
 estimate as proof that the day had turned and shovelled the count across.
 `/cn progress` read "Today: 0, Previous day: 12" after a reload, on the same
@@ -905,7 +974,7 @@ actually registers.
 ### Fixed
 
 - **A Warband bank the game would not describe was reported as freshly
-  read.** For a player who has bought no Warband bank tab â€” the common case â€”
+  read.** For a player who has bought no Warband bank tab — the common case —
   `/cn bags` said "0 kinds of item, seen just now", permanently, about a bank
   the addon has never seen. Same shape as 0.95.0's cold toy box and 0.94.0's
   cold recipe list: a refusal recorded as a successful read, on the one field
@@ -915,7 +984,7 @@ actually registers.
   spacing were both taught to follow `/cn textsize` in 0.90.0; the width of
   the right-hand column was not, and the width is applied regardless. At 150%
   the longest value wrapped onto a second line and overflowed its row onto the
-  one below, on the two tabs that use that column most â€” in the feature built
+  one below, on the two tabs that use that column most — in the feature built
   for the players least likely to go hunting for a command.
 - Two em dashes sat against the word before them, in a goal's explanation and
   in a bag objective's progress line.
@@ -926,18 +995,18 @@ actually registers.
   behaviour was right; the comment would have sent the next reader to "fix"
   working code.
 - A stray colour terminator in the middle of a `/cn providers` sentence, and a
-  count in a comment that had been out of date for four releases â€” the file
+  count in a comment that had been out of date for four releases — the file
   now points at the command that prints the live figure instead.
 
 ## [0.95.0]
 
 **At every login with a cold Pet Journal or Toy Box, the addon wiped filters
-you had chosen â€” and told you it could not put them back.** Both journals
+you had chosen — and told you it could not put them back.** Both journals
 answer zero while they are still loading, which is exactly when the addon
 scans them, and both read that zero as "your source and type checkboxes are
 hiding everything" and widened them. The client offers no getter for those
 checkboxes, so the widening is permanent. The guard written for this in 0.92.0
-sits *inside* the scan, which runs after the widening has already happened â€” a
+sits *inside* the scan, which runs after the widening has already happened — a
 guard that runs after the writes is not a guard. Both now check a count the
 filters cannot touch first, so "you filtered everything out" and "the journal
 has not answered yet" are told apart before anything is changed.
@@ -947,8 +1016,8 @@ about to expire.** The client reports a `locked` flag per instance; the addon
 has read it into its own records since that code was written and never once
 looked at it, inferring the same fact from the reset countdown instead. But an
 expired lockout stays in the list with time still showing on it. So the
-strongest urgency signal this addon emits â€” "six bosses already down, resets
-soon" â€” was being raised for an instance you would have to clear from zero.
+strongest urgency signal this addon emits — "six bosses already down, resets
+soon" — was being raised for an instance you would have to clear from zero.
 
 ### Fixed
 
@@ -962,7 +1031,7 @@ soon" â€” was being raised for an instance you would have to clear from zer
 - **A wardrobe that had not loaded was cached as an empty one for the whole
   session.** The only thing that clears that cache is collecting a transmog,
   so a player who collected nothing had `/cn sets` reporting zero and the sets
-  provider silent until they logged out â€” losing the "3 of 5 pieces"
+  provider silent until they logged out — losing the "3 of 5 pieces"
   denominator this addon is otherwise short of.
 - **A bag of caged pets cost a full journal sweep per pet.** That sweep is the
   most expensive single event in the addon by a factor of forty, and each one
@@ -975,14 +1044,14 @@ soon" â€” was being raised for an instance you would have to clear from zer
   addon calling the published API before registering anything got an error out
   of it.
 - Chat separators were missing their leading space in four places, so counts
-  and separators collided â€” and two labels spelled a pending state as three
+  and separators collided — and two labels spelled a pending state as three
   middle dots rather than an ellipsis.
 
 ### Changed
 
 - The reset-proximity branch of the lockout urgency term has been removed. It
   has been unreachable since 0.88.0 moved that deadline onto the scorer's own
-  curve, and it read as though the term still weighted it â€” an invitation to
+  curve, and it read as though the term still weighted it — an invitation to
   charge the same reset a third time.
 - Two routing helpers with no callers are gone, along with a comment claiming
   in the present tense that one of them was doing the conversion the file
@@ -992,7 +1061,7 @@ soon" â€” was being raised for an instance you would have to clear from zer
 
 **Opening a profession window before the game had sent the recipe list was
 recorded as having read it.** The client reports the window as ready before the
-recipes arrive, and the addon wrote "0 of 0 recipes, read" to disk anyway â€”
+recipes arrive, and the addon wrote "0 of 0 recipes, read" to disk anyway —
 which is the one flag that stops it asking. `/cn setup` dropped "open each
 profession window once", the Collections tab dropped the same hint, and the
 state survived every login, because a rescan deliberately preserves it. The
@@ -1010,7 +1079,7 @@ earned.
 **With two data addons installed, the addon named the wrong one as
 authoritative.** A quest claimed by two suppliers recorded the first as the
 winner and then let the second overwrite it. `/cn selftest` printed that
-straight to you, so the wrong addon got disabled. First registration wins now â€”
+straight to you, so the wrong addon got disabled. First registration wins now —
 which is what the code, the self-test and `/cn provenance` all already claimed,
 and it is the only answer that stops a supplier silently replacing this addon's
 own hand-checked rows. A supplier replacing its *own* rows has had a way to do
@@ -1019,9 +1088,9 @@ that since 0.92.0.
 ### Fixed
 
 - **Setup could complete permanently on a currency read the game refused.**
-  `Currencies.Scan` documents `0` as its refusal â€” "what the client returns
+  `Currencies.Scan` documents `0` as its refusal — "what the client returns
   while currency data is still streaming at login, which is exactly when this
-  runs" â€” and setup reported it in the success colour, counted it, and stamped
+  runs" — and setup reported it in the success colour, counted it, and stamped
   the completion flag. The login reminder then never fired again while
   `/cn currencies` said "No currency data yet." Third step to need this guard;
   0.73.0 and 0.86.0 fixed the other two without asking which else returned a
@@ -1036,13 +1105,13 @@ that since 0.92.0.
   than after "142". The 0.77.0 sweep reached three files and the 0.92.0 sweep
   reached one more; this one reached `Progress`, `Toys`, `Mounts` and
   `Loremaster`.
-- An empty search result left the previous row's highlight in place â€” no
+- An empty search result left the previous row's highlight in place — no
   visible symptom, and not what the note beside it claimed.
 
 ### Changed
 
 - **The quest-log sweep stamps its own throttle.** It was stamped by the event
-  handler alone, so the login hook and `/cn discoveractive` left it unarmed â€”
+  handler alone, so the login hook and `/cn discoveractive` left it unarmed —
   and `QUEST_LOG_UPDATE` fires within the same second in both cases. The most
   expensive scan in the addon, which walks every related map's points of
   interest with a write and a title request per pin, ran twice at every login.
@@ -1052,21 +1121,21 @@ that since 0.92.0.
   neighbourhood and then swept it again to produce a number the first sweep
   already held.
 - **A mouseover resolves an item once.** The mount and pet lookups were each
-  performed twice per tooltip â€” on what the benchmark file calls the hottest
+  performed twice per tooltip — on what the benchmark file calls the hottest
   path in the addon, where a bag sweep or an auction page fires dozens a
   second.
 - **Typing in the filter box no longer searches every other tab on every
   keystroke.** The cross-tab count walked the entries of all eleven tabs
   twice per character typed, and kept building throwaway strings after it
-  already had its answer. Debounced, and it stops at the first match â€” the
+  already had its answer. Debounced, and it stops at the first match — the
   first keystroke still answers immediately.
 - The Great Vault is read once per refresh rather than twice.
 
 ## [0.93.0]
 
 **An achievement could not get onto the shortlist by getting closer to done.**
-The five-second criteria sweep â€” the thing that keeps "3 of 5 rares" honest
-while you are out doing it â€” only ever looked at achievements that were
+The five-second criteria sweep — the thing that keeps "3 of 5 rares" honest
+while you are out doing it — only ever looked at achievements that were
 *already* on the shortlist. An achievement one step from finishing sat unread
 until something else forced a full rescan, which meant the sweep did its best
 work precisely where it was least needed and none at all where it mattered.
@@ -1075,7 +1144,7 @@ The rest of this release is a sweep of a rule this project has stated in six
 files and broken in two: **a localized string is for display, never to persist**.
 Faction and transmog-slot names were being written to disk on every scan and
 read back on every list, so a player who changed client language kept reading
-the old one until something happened to rescan â€” up to ten minutes, for
+the old one until something happened to rescan — up to ten minutes, for
 appearances.
 
 ### Fixed
@@ -1108,7 +1177,7 @@ appearances.
   shortlist by approaching completion rather than only by being on it already.
 - **Teleport readiness is computed once and reused.** The list of teleports
   and their cooldowns was rebuilt from scratch for every candidate on another
-  continent â€” dozens of client calls per refresh. It is cached against an
+  continent — dozens of client calls per refresh. It is cached against an
   explicit revision now, bumped when bags change, when a teleport is cast and
   at login, and expires on its own when the shortest cooldown it saw runs out.
   A cache with no expiry would have held a finished cooldown for ever, because
@@ -1121,8 +1190,8 @@ appearances.
 
 ### Performance
 
-- Route optimisation is now measured at 200 stops as well as 90 â€” one zone's
-  worth of a full completionist sweep â€” and confirmed to scale exactly
+- Route optimisation is now measured at 200 stops as well as 90 — one zone's
+  worth of a full completionist sweep — and confirmed to scale exactly
   quadratically with no hidden term. It carries a ceiling now, so a change
   that moves that work back onto the refresh path is caught by a number.
 - The cross-continent travel estimate had never been measured at all: every
@@ -1136,8 +1205,8 @@ appearances.
 `/cn defer forever` stored a deadline of infinity; the client serialises that
 as the bare word `inf`, which on the next login parses as an undefined global
 and comes back as nothing. The addon wrote a deadline and read back nil,
-silently, every session. It happened to behave correctly â€” a missing deadline
-means "never expires" â€” which is not the same as being correct, and is one
+silently, every session. It happened to behave correctly — a missing deadline
+means "never expires" — which is not the same as being correct, and is one
 line away from a bug nobody could reproduce. Forever is now stored as what it
 is: the absence of a deadline.
 
@@ -1148,24 +1217,24 @@ citizen rather than an invisible one.
 
 - **Caging a pet scanned the whole journal twice.** One handler cleared the
   scan timestamp and then scanned, which makes the throttle in the handler
-  beside it read as "never scanned" â€” so the sweep that widens and restores
+  beside it read as "never scanned" — so the sweep that widens and restores
   your own journal filters ran, and then ran again. `Modules/Currencies.lua`
   records fixing this exact shape in 0.65.0, in as many words.
 - **A cold pet journal was recorded as an empty collection.** The journal
   answers with nothing for a moment after login, which is when the addon
-  scans it. That threw away the pet name index â€” 1,800 client calls to
-  rebuild, on the tooltip path â€” marked the setup step done so the reminder
+  scans it. That threw away the pet name index — 1,800 client calls to
+  rebuild, on the tooltip path — marked the setup step done so the reminder
   stopped asking, and made `/cn petscan` print "0 species" while `/cn pets`
   reported the full collection a second later. Four other scans have carried
   this guard for releases; pets was the fifth without one.
 - **`/cn who` named the character who had already done the thing.** For a
-  recipe or a title, the character the addon picks is the one who *has* it â€”
+  recipe or a title, the character the addon picks is the one who *has* it —
   there is nothing to switch to. Three other callers have honoured that since
   0.79.0, 0.84.0 and 0.88.0, and the last of those calls itself "the third
   caller" in a comment. This was the fourth, and it is the command whose help
   line is "Which character should do something".
 - **"In your current zone" was not a claim about the zone.** The check asked
-  whether the game would tell the addon where you were standing at all â€” so a
+  whether the game would tell the addon where you were standing at all — so a
   rare on a different map still said it was here, and a rare genuinely here
   lost the line indoors or mid-loading-screen, which is exactly when somebody
   reads it.
@@ -1188,19 +1257,19 @@ citizen rather than an invisible one.
   in a file that is otherwise accented.
 - **The "and N more not shown" row took the mouse.** List rows are reused, so
   when that line landed on an index that had held a clickable row, it still lit
-  up under the cursor and still swallowed the click â€” while doing nothing.
+  up under the cursor and still swallowed the click — while doing nothing.
 - **A trailing space in the search box broke the cross-tab count.** "Also on:
   Collections (0)" beside a Collections tab showing twelve matches. Two places
   normalised the search text differently.
 - **Seven printed lines padded their columns with spaces.** WoW has no
   monospace font in its UI, so the second label never lines up. The 0.77.0
   sweep reached three files; the rest are done, and the build checks for it
-  now â€” while allowing the three shapes that are not padding, including the
+  now — while allowing the three shapes that are not padding, including the
   addon generating Lua source for its own data files.
 - **Two more stores kept a timestamp nothing reads**, and migration 36 removes
   them.
 
-### Changed â€” data suppliers
+### Changed — data suppliers
 
 - **`/cn providers` answers the question its help line asks.** Its job is
   "show which external data addons were detected", and it listed only the two
@@ -1212,7 +1281,7 @@ citizen rather than an invisible one.
   problem.
 - **A bad supplier can no longer bury every other error.** Refused rows were
   recorded one per row against a twenty-entry ring, so twenty-one bad rows
-  evicted everything else that session â€” including the supplier's own summary.
+  evicted everything else that session — including the supplier's own summary.
   One entry per registration now, with the count and the first reason.
 - **A supplier can test what it is talking to.** `CN.Static.apiVersion` says
   what the registrar promises, which the addon's version string cannot. Before
@@ -1230,7 +1299,7 @@ about to use it.** Completion Navigator has published a way for other addons
 to contribute curated quest data since 0.43.0. Audited properly for the first
 time, that surface turned out to accept anything, tell the caller nothing,
 throw on a nil argument where the registrar beside it returned zero, stamp no
-record of who supplied a row â€” and then report every row in the table under
+record of who supplied a row — and then report every row in the table under
 the heading "each one checked by hand". Four of its five registration
 functions wrote into tables nothing anywhere read.
 
@@ -1248,13 +1317,13 @@ addon. All of it matters now.
   call site in this project.
 - **`/cn breakdown` claimed a location count it never computed.** It reported
   every harvested quest as "harvested with location data", where coordinates
-  are only recorded when the client resolved a waypoint â€” which for a
+  are only recorded when the client resolved a waypoint — which for a
   turned-in or off-map quest it does not. The real figure was already being
   calculated one function away. This is the report whose own header says it
   exists so the addon never invents an authoritative-looking number.
 - **A breadcrumb quest you have walked past is now reported as gone.** The
-  data schema has documented `breadcrumb` â€” "skippable and permanently
-  missable" â€” since 0.43.0, and the addon has carried a block reason for it
+  data schema has documented `breadcrumb` — "skippable and permanently
+  missable" — since 0.43.0, and the addon has carried a block reason for it
   just as long. Neither had a producer, so a curator following the addon's own
   schema wrote something that reached nothing. A breadcrumb whose target you
   have started or finished is removed by the game; telling a completionist to
@@ -1264,13 +1333,13 @@ addon. All of it matters now.
   `faction`; the code read `requiresLevel` and `requiresFaction`, which is
   what `/cn export` emits. So hand-curated rows and harvested rows in the same
   file gated through different code paths, and one of the two was not treated
-  as authoritative â€” contradicting the comment three lines above it. Both
+  as authoritative — contradicting the comment three lines above it. Both
   spellings work now, and both are documented.
 - **`/cn mode leveling` advertised a travel weighting it does not apply.**
   Its note has always read "weighted toward fast travel" while the profile
   behind it had no travel weight at all. The sentence is what changed, not the
   number: giving the profile the weighting it claimed takes a placeless
-  objective below zero, which the suite catches â€” so the promise had a
+  objective below zero, which the suite catches — so the promise had a
   consequence nobody has measured. `/cn mode fastest` is the one that weights
   travel, and it is tuned.
 - **`/cn alts`, `/cn provenance` and six stored fields.** The curated count
@@ -1282,7 +1351,7 @@ addon. All of it matters now.
 ### Changed
 
 - **Contributing curated quest data is now a real contract.** Rows are
-  validated on arrival â€” a numeric-string key, a field the addon does not
+  validated on arrival — a numeric-string key, a field the addon does not
   read, a missing record are each refused with a reason rather than stored
   and silently ignored. Registration reports how many rows landed and how
   many did not. Every row carries its supplier, so `/cn provenance` reports
@@ -1293,7 +1362,7 @@ addon. All of it matters now.
   login now invalidate the caches they need to.
 - **The curated quest sweep is a shortlist rather than a walk of the whole
   database.** It walked every curated row and asked the eligibility engine
-  about each â€” which, for a row without gating fields, means a call into every
+  about each — which, for a row without gating fields, means a call into every
   other quest addon you have installed. With one shipped row that was free.
   With a few thousand it is thousands of cross-addon lookups every two seconds
   while questing. It is also capped now, like the five providers beside it.
@@ -1304,7 +1373,7 @@ addon. All of it matters now.
   surface either works or is not published.
 - **The offline suite's quest log now contains zone headers, and its daily
   reset counts down.** The client's log includes header rows and the addon
-  filters them out â€” a filter that had never once been exercised. The reset
+  filters them out — a filter that had never once been exercised. The reset
   API returns a countdown; the test double returned a fixed number whatever
   the clock said, so the one invariant the reset logic rests on was
   unobservable. Twenty-first and twenty-second entries in this project's list
@@ -1316,7 +1385,7 @@ addon. All of it matters now.
 been lying since the window was written.** The offline test suite's fake
 `GetTextWidth` returned 60 for every caption at every text size, where the
 game returns the rendered width. The tab strip sizes its eleven buttons from
-exactly that call â€” so "does a caption still fit its button at 150% text?" was
+exactly that call — so "does a caption still fit its button at 150% text?" was
 a question no test could ask, and the answer was no. Nothing re-measured the
 strip after a text-size change at all. Fixing the stub found that, a row pitch
 that never grew with the text it held, and a sort caption drawn on top of the
@@ -1331,8 +1400,8 @@ simpler or more forgiving than the real client.
   welcome screen.** All three are built the first time they are needed rather
   than at login, and the only thing that applies the saved scale runs at
   login. So somebody who set 1.5 got the window and the heads-up line at 1.5
-  and the arrow â€” the frame the setting most obviously exists for, drawn over
-  the world at a distance â€” at 1.0, every session. The window and the
+  and the arrow — the frame the setting most obviously exists for, drawn over
+  the world at a distance — at 1.0, every session. The window and the
   heads-up line were each given this fix in an earlier release; it landed on
   two of five frames.
 - **Text sizes above about 130% broke the window's layout.** Tab captions grew
@@ -1348,14 +1417,14 @@ simpler or more forgiving than the real client.
   number.
 - **Map route numbers did not follow you.** The pin cache was keyed on what
   the addon knows and not on where you are standing, and nothing invalidated
-  it when you moved â€” so you could open the map at one end of a zone, run to
+  it when you moved — so you could open the map at one end of a zone, run to
   the other end, open it again, and get the stops still ordered from where you
   had been. Route order is the whole point of the feature. It is keyed on your
   position now, coarsened to the same grid the router already uses so that
   panning the map still costs nothing.
 - **The tooltip said "Faction-locked" about mounts of your own faction.** In
   the warning colour, under "not collected", which reads as "you cannot have
-  this" â€” about roughly half the faction mounts in the game. It now names the
+  this" — about roughly half the faction mounts in the game. It now names the
   faction that actually holds it, in the client's own language, and says
   nothing at all about a mount you can collect. The two halves of that tooltip
   also disagreed depending on whether you had run `/cn mountscan`; they no
@@ -1363,7 +1432,7 @@ simpler or more forgiving than the real client.
 - **`/cn navdiag` reported an unmeasured map scale as a fact.** The function
   returns a third value meaning "this is a shrug, not a measurement" and its
   own header says callers wanting yards must check it. Two other files do. The
-  diagnostic command â€” the one whose output goes into bug reports â€” did not,
+  diagnostic command — the one whose output goes into bug reports — did not,
   so during a loading screen or in an instance it printed "map scale 1 x 1
   yards across".
 - **`/cn alts` reported a character with no recorded play time as played
@@ -1375,7 +1444,7 @@ simpler or more forgiving than the real client.
   new, and the login sweep had already learned it. It now says how many it
   harvested and, separately, how many of those told it something.
 - **Two window lists padded their numbers with spaces.** WoW has no monospace
-  font in its UI, so padding rows 1â€“9 with a leading space moved the periods
+  font in its UI, so padding rows 1–9 with a leading space moved the periods
   further out of line rather than into it. The chat side has been swept for
   this three times.
 - **A sighting counter nothing has ever read is gone.** One integer per
@@ -1389,7 +1458,7 @@ simpler or more forgiving than the real client.
 pattern in the Great Vault and the raid lockout list and fixed both; this
 release went looking for the rest of it and found expiring mail, your
 keystone, the week's profession knowledge, a capped currency and a crafting
-order â€” each feeding one fact into a flat bonus *and* into the urgency curve,
+order — each feeding one fact into a flat bonus *and* into the urgency curve,
 through two shapes tuned independently, only one of which `/cn urgency` plots.
 Mail carried the largest: nine points of flat bonus on top of the ramp, which
 is why "3 mail expiring" could outrank a world quest with nine minutes left.
@@ -1404,8 +1473,8 @@ siblings, and the first time the check that finds them all has been written.
 - **Mail, the keystone, weekly knowledge, capped currencies and crafting
   orders each charged their deadline once**, not twice.
 - **A cold `/cn setup` wrote a junk row for every incomplete achievement in
-  the game.** The criteria API answers "0 of 0" for a window after login â€”
-  which the file's own note says is exactly when a first scan is run â€” and a
+  the game.** The criteria API answers "0 of 0" for a window after login —
+  which the file's own note says is exactly when a first scan is run — and a
   zero was taken as a real answer. Those rows were unrepairable afterwards
   and the prune deliberately kept them, so the store filled with thousands of
   entries rewritten to disk on every logout, and `/cn achievements` reported
@@ -1415,11 +1484,11 @@ siblings, and the first time the check that finds them all has been written.
   to finishing.** The client is slow to flip the completed flag, so a 12-of-12
   row sorted to the very top of a list headed "closest to completion". The
   sibling rule in the Loremaster and Exploration lists has carried the guard
-  since 0.71.0 â€” and its note says, in as many words, that a third copy exists
+  since 0.71.0 — and its note says, in as many words, that a third copy exists
   elsewhere. This was it.
 - **Flight paths were being timed as ground-mount speed.** The speed sampler
   excludes the taxi from its flying bucket, under a comment saying that
-  movement belongs to the flight-path measurement instead â€” and then caught it
+  movement belongs to the flight-path measurement instead — and then caught it
   in the mounted bucket, whose plausibility band happens to admit every flight
   speed in the game. Two other files state as fact that this already worked.
   It matters because on-foot speed falls back to the mounted median, and that
@@ -1435,9 +1504,9 @@ siblings, and the first time the check that finds them all has been written.
   recipe whether or not anything had changed, on an event that fires in
   bursts. It bumps when a name actually changes now.
 - **`/cn chase` gave a confident time estimate when exactly half the steps
-  had never been timed** â€” the rule printed beside it says an estimate is
+  had never been timed** — the rule printed beside it says an estimate is
   offered only when *more* are timed than are not.
-- **`/cn situation` counted you among the people you were with** â€” "in an
+- **`/cn situation` counted you among the people you were with** — "in an
   instance with 5 people" to somebody standing with four others.
 - **`/cn clock`'s help named two commands' contents and not its own.** It
   advertised the vault and lockouts, which are `/cn vault` and
@@ -1447,7 +1516,7 @@ siblings, and the first time the check that finds them all has been written.
   migrations removed this field from six other stores; this one was in none of
   the sweeps. Migration 33 drops it and the writer stops adding it back.
 - **Thirty-five lines of unreachable chase code were deleted.** They built a
-  path for an appearance goal, and no appearance goal can be created â€” nor
+  path for an appearance goal, and no appearance goal can be created — nor
   should the gap be closed as written, since the builder asks the client for a
   third kind of id from the two the addon actually uses. The harness now
   refuses any chase builder for a goal type nothing can pin.
@@ -1467,9 +1536,9 @@ reads.** None of them throws an error, which is why they lasted. All of them
 change what the addon tells you to do next.
 
 The largest is a currency store that emptied itself. `Currencies.Scan` bumps
-a serial and stamps every currency it finds with it; everything downstream â€”
+a serial and stamps every currency it finds with it; everything downstream —
 what is capped, what has weekly earning left, how many currencies you have at
-all â€” asks whether a row carries the current serial. The scan bumped the
+all — asks whether a row carries the current serial. The scan bumped the
 serial *before* it knew the game had answered. The game answers with nothing
 on four ordinary paths, one of which is the first seconds after login, which
 is exactly when the addon runs this. So one login could retire every currency
@@ -1484,7 +1553,7 @@ have carried the guard for that since 0.61.0, 0.71.0 and 0.76.0.
   was never given.
 - **The Great Vault and your raid lockouts charged the weekly reset twice.**
   Both fed the reset into `limitedTimeBonus` *and* into `expiresIn`, through
-  two curves tuned separately â€” and `/cn urgency`, which the addon offers as
+  two curves tuned separately — and `/cn urgency`, which the addon offers as
   its own explanation of the ordering, plots only one of them. On a Sunday
   evening the vault outranked things it should not have, and the chart said it
   should not have.
@@ -1492,7 +1561,7 @@ have carried the guard for that since 0.61.0, 0.71.0 and 0.76.0.
   it.** `Warband.Suitability` asks which character is best placed for
   something and drops the answer's fourth value, which says whether switching
   would actually help. For a recipe or a title, the character named is the one
-  who *already has it* â€” there is nothing to switch for â€” so the penalty
+  who *already has it* — there is nothing to switch for — so the penalty
   landed on the only character it could still be done on, with the holder's
   name printed as the reason. Third caller of a fix made in 0.79.0 and again
   in 0.84.0.
@@ -1502,7 +1571,7 @@ have carried the guard for that since 0.61.0, 0.71.0 and 0.76.0.
   missing countdown is how the addon marks "an event the game will not date",
   which is worth three points. A live event three hours out earns about one
   and a third.
-- **`/cn defer` â€” put something off for longer than an hour.** The addon has
+- **`/cn defer` — put something off for longer than an hour.** The addon has
   had a table of durations since it had a filter tab, with `Until reset`
   described in its own header as the one that matches how the game actually
   works. Nothing read the table: every deferral in the tree was a hardcoded
@@ -1535,8 +1604,8 @@ have carried the guard for that since 0.61.0, 0.71.0 and 0.76.0.
 
 **Last release fixed how a caged pet in your bags is identified, and paid for
 it with a full search of the pet journal on every item you hover.** That
-lookup runs from the tooltip and from the bag sweep â€” the two busiest paths in
-the addon â€” and the search it was routed through walks every species you have
+lookup runs from the tooltip and from the bag sweep — the two busiest paths in
+the addon — and the search it was routed through walks every species you have
 ever seen, lowercasing each name. This addon has removed exactly that shape
 from two other hot paths and left a note each time. It is an index now, built
 once and only when the pet store actually changes.
@@ -1547,8 +1616,8 @@ Everything in this release is something 0.86.0 broke or left half-done.
 
 - **Hovering an item no longer searches the whole pet journal.**
 - **The first version of that index was worse than the search.** It rebuilt
-  whenever *any* collection counter moved â€” a quest turn-in, a reputation
-  tick, walking through a portal â€” none of which touch pets, and each rebuild
+  whenever *any* collection counter moved — a quest turn-in, a reputation
+  tick, walking through a portal — none of which touch pets, and each rebuild
   asked the client about every species. It also could not tell a journal that
   had not loaded yet from one that had, so an index built in the first seconds
   after login was made entirely of placeholders and stayed cached: every caged
@@ -1556,13 +1625,13 @@ Everything in this release is something 0.86.0 broke or left half-done.
   are fixed, and both are now tested.
 - **A quest one objective from done threw away a location you recorded by
   hand.** Last release taught that row to carry coordinates, and asked the raw
-  game call â€” which is only the first of four places the addon looks. The
+  game call — which is only the first of four places the addon looks. The
   curated turn-in spot, your own `/cn where` override and the shipped database
   were all discarded, because this row wins against the quest tracker's own
   and the merge never combines coordinates.
 - **A quest on another continent was priced as if it were in this zone.** The
   game answers "this map, no exact point" as a normal result, and the router
-  prices that correctly â€” but the new code only asked when it had an exact
+  prices that correctly — but the new code only asked when it had an exact
   point, and fell through to the near cost. Thirty-two points of advantage, on
   a scale where finishing something is worth four: the exact symptom last
   release's note claims to have removed.
@@ -1573,19 +1642,19 @@ Everything in this release is something 0.86.0 broke or left half-done.
   ago; this was the third caller.
 - **`/cn setup` told you to retry with the wrong command.** Its "the game was
   not ready yet" line named the quest-achievement scan for every step, because
-  that was the only step that could reach it â€” until last release made the
+  that was the only step that could reach it — until last release made the
   achievement scan reachable too.
 
 ## [0.86.0]
 
 **`/cn selftest` has been reporting a red FAIL on every Retail client since
 the check was written.** Its first line compares a generated list of every
-client function the addon mentions against what the client actually has â€” and
+client function the addon mentions against what the client actually has — and
 that list cannot tell a function the addon *needs* from one it asks about and
 takes the other branch when it is absent. Five are the second kind, including
 the pre-Dragonflight options API that no Retail client has had for two years.
 So the command the bug-report template asks you to run opened with a failure,
-under a footer reading *"A failure above is a real defect."* â€” and, being
+under a footer reading *"A failure above is a real defect."* — and, being
 always red, hid the real API loss it exists to catch.
 
 This release audits the addon's core logic, which had not been swept for many
@@ -1598,24 +1667,24 @@ releases, and four of the six findings were things that had never once worked.
   actually required.
 - **A caged battle pet in your bags has never been detected.** The lookup that
   turns a caged pet into a species read past the end of what the client
-  returns, and fell back to a *different* kind of id â€” one the addon's own code
+  returns, and fell back to a *different* kind of id — one the addon's own code
   lists as a separate field two lines away. So no `/cn bags` row, no
   recommendation, and no tooltip line, for the single clearest example in that
   module's own description. The offline fixture returned two values the client
   does not return, so the only path that runs in the game had never been tested.
 - **A quest one objective from finishing was priced as if it were in your
-  pocket** â€” and, being priced that way, was treated as having no location at
+  pocket** — and, being priced that way, was treated as having no location at
   all. That row wins against the quest tracker's own, so it also *replaced*
   the real coordinates with none: a quest three feathers from done outranked
   everything in front of you and then could not be navigated to.
 - **`/cn setup` reported a cold achievement scan as a success.** The check for
-  "the game was not ready yet" read the wrong number for that step â€” a
-  four-figure count that is never zero â€” so setup run in the first seconds
+  "the game was not ready yet" read the wrong number for that step — a
+  four-figure count that is never zero — so setup run in the first seconds
   after login said "complete" over a store that had recorded nothing, and
   `/cn setup check` then said "Not scanned yet". Fixed for the sibling scan
   three releases ago and not carried across.
 - **A fresh character was nagged to scan for ever.** The achievement scan
-  decided whether the client had answered by counting rows *with progress* â€” so
+  decided whether the client had answered by counting rows *with progress* — so
   a character with none looked identical to a client that refused. Nothing was
   stored, the scan never marked itself done, and no command could clear the
   reminder.
@@ -1623,7 +1692,7 @@ releases, and four of the six findings were things that had never once worked.
   unchanged account: one check sampled whichever achievements the table
   happened to yield first.
 - **Every spellcast by every unit around you was being processed.** The addon's
-  one unit event was registered for all units rather than for you â€” in a raid,
+  one unit event was registered for all units rather than for you — in a raid,
   a hundred dispatches a second for a flag that changes once per hearthstone.
 - Five of six per-type timing values had been unreachable since a gate added
   three releases later; the table now holds only what can be read.
@@ -1633,7 +1702,7 @@ releases, and four of the six findings were things that had never once worked.
 **Last release made the window taller, and at the largest text size it no
 longer fitted on the screen.** 560 pixels at Size 1.50 is 840 units against a
 768-unit screen, and the "keep me on screen" flag cannot help with a frame
-bigger than the screen â€” it pins one edge and lets the other hang off. So
+bigger than the screen — it pins one edge and lets the other hang off. So
 either the footer and the answer line, or the title bar and its close button,
 went past the edge and could not be reached; and because the window remembers
 where it was, so did that. At the old height the same sum came to 720 and
@@ -1647,18 +1716,18 @@ Everything in this release is something 0.84.0 broke or left half-done.
 - **The window fits the screen at every size it offers.** See above.
 - **The Goals tab threw an error on every refresh if one module was missing.**
   Last release's rewrite of that tab replaced a line that was doing double
-  duty as a guard, and the `if` beneath it stopped guarding anything â€” so an
+  duty as a guard, and the `if` beneath it stopped guarding anything — so an
   addon that loaded without its chase module printed a Lua error to chat each
   time the window refreshed, instead of degrading quietly. The suite now
   sweeps every tab against every module being absent, because the next rewrite
   will drop a different guard.
 - **One keystroke undid last release's "a broken tab does not offer a remedy
   that cannot work" fix.** The replacement sentence was swapped in, drawn, and
-  swapped straight back out â€” and typing in the search box redraws from the
+  swapped straight back out — and typing in the search box redraws from the
   same rows, after the swap has been undone. So "This part of the addon did
   not load" went back to sitting over "Log in on another character and this
   fills itself" as soon as you typed anything.
-- **`/cn pins refresh` still reported the capped number as the total** â€”
+- **`/cn pins refresh` still reported the capped number as the total** —
   "Redrew 40 stops." for a route with sixty-three in it. Last release fixed
   the branch twenty-five lines below it in the same command and not this one.
 - **The version and studio line ran underneath the Debug checkbox and the
@@ -1675,14 +1744,14 @@ Everything in this release is something 0.84.0 broke or left half-done.
 **The "Debug output" checkbox could not be clicked.** The Settings tab's right
 column is one chain of anchored controls, and two settings added a while back
 pushed it past the bottom of the panel: "Text 100%" was drawn on top of the
-Debug checkbox â€” and a button takes the mouse, so the one control this addon
+Debug checkbox — and a button takes the mouse, so the one control this addon
 tells you to turn on when reporting a bug was unreachable. "Keep the filter box
 across tabs" was drawn below the window entirely, over the game world. The file
 records fixing this same overflow twice before; three times is a rule, so the
 build now walks the column arithmetically and fails if it does not fit.
 
-This release audits the parts of the addon you actually look at â€” the window,
-the map pins and the goal plan â€” which had not been swept in five releases.
+This release audits the parts of the addon you actually look at — the window,
+the map pins and the goal plan — which had not been swept in five releases.
 
 ### Fixed
 
@@ -1690,34 +1759,34 @@ the map pins and the goal plan â€” which had not been swept in five release
   controls sit side by side, which is where they belonged anyway.
 - **Reopening the window greeted you with an old answer.** Press "Scan
   everything", read "Read 6 collections.", close the window, come back twenty
-  minutes later â€” and that sentence was still under the tab strip describing
+  minutes later — and that sentence was still under the tab strip describing
   something that had not just happened. The code that clears it was written
   into a function nothing in the addon calls; every real way of opening the
   window took a different path.
 - **The Goals tab told you to switch to the character who already has it.**
-  For a recipe or a title the named character is the *holder* â€” a title cannot
-  be earned twice â€” and the plan drew "Best character: Bob" under a goal Bob
+  For a recipe or a title the named character is the *holder* — a title cannot
+  be earned twice — and the plan drew "Best character: Bob" under a goal Bob
   had finished. `/cn goals` printed the reason beside it and contradicted
   itself in one line. `/cn alts` was fixed for this five releases ago; this
   was its sibling.
 - **Scanning quests could never clear its own "stale" mark.** The Scans tab
   caches its rows against a counter that every other scan moves, and this one
-  deliberately does not use that path â€” so clicking the row froze the client,
+  deliberately does not use that path — so clicking the row froze the client,
   did the work, and changed nothing on screen. The Collections tab, reading
   the same timestamp uncached, said "just now" at the same moment.
 - **`/cn find` wrote to your saved data.** Searching refreshes every tab with
   the window hidden so there are rows to match, and one of those tabs walked
-  the quest pins on your map and filed each one â€” pins you never saw,
+  the quest pins on your map and filed each one — pins you never saw,
   evicting real observations at the store's cap.
 - **The map dropped stops past forty and said nothing**, and `/cn pins`
   reported the truncated number as the total. It now says how many it did not
-  draw â€” the rule this addon applies to every other truncated list.
-- **A tab whose module failed to load offered a remedy that cannot work** â€”
+  draw — the rule this addon applies to every other truncated list.
+- **A tab whose module failed to load offered a remedy that cannot work** —
   "This part of the addon did not load" over "Nothing pinned yet; pin
   something." Four tabs did this; the Zone tab had been fixed for it alone.
 - **Unticking "Move the waypoint on as I finish things" left its timer
   running** for the rest of the session, and ticking it did nothing visible
-  until the next event â€” while `/cn auto`, which writes the same setting, did
+  until the next event — while `/cn auto`, which writes the same setting, did
   both properly.
 - **"Rescan currencies" froze the client and said nothing.** Every other scan
   button in the window reports what it read; this one threw all three numbers
@@ -1728,31 +1797,31 @@ the map pins and the goal plan â€” which had not been swept in five release
 
 **Last release made the mail reminder hideable, and `/cn hidden` then called
 it "Currency mail".** That list names each row through a lookup whose every
-branch starts by converting the id to a number â€” so a row identified by a word
+branch starts by converting the id to a number — so a row identified by a word
 falls past all of them to a last-resort line that prints the addon's own
 internals. A table of names exists for exactly this and had two entries in it;
 0.82.0 added a third such row without adding it there, and two more had been
 missing the whole time. The list now reads:
 
-> Expiring mail Â· Your Mythic+ keystone Â· Great Vault: raid progress
+> Expiring mail · Your Mythic+ keystone · Great Vault: raid progress
 
 and a sweep over every row the addon can produce fails the build if a new one
 arrives without a name.
 
 ### Fixed
 
-- **Five rows were named after the addon's internals in `/cn hidden`** â€” the
+- **Five rows were named after the addon's internals in `/cn hidden`** — the
   mail reminder, the keystone row, and the Great Vault's four progress rows.
 - **A crafting order could be mistaken for a recipe you already know.**
   "Recipe" covers three unrelated kinds of number: a merchant's item id, a
   trade-skill recipe id, and a crafting order id. 0.82.0 moved the vendor rows
   out of the collision and left the crafting orders in it, so an order whose
   number happened to match a recipe you know was reported as already done and
-  the waypoint was silently dropped â€” from an order about to expire, which is
+  the waypoint was silently dropped — from an order about to expire, which is
   the only reason that row exists. Orders now carry their own id space.
 - **Importing a quest chain could delete an observation you made yourself.**
   Both the importer and your own quest-chain harvest write into the same
-  graph, and the importer wrote last â€” so an import made mid-session took over
+  graph, and the importer wrote last — so an import made mid-session took over
   a chain you had observed on three of your own characters, and
   `/cn contribute forget` then removed it as though it had been imported. A
   quest the addon had correctly held as locked became available, and `/cn go`
@@ -1770,7 +1839,7 @@ arrives without a name.
 ## [0.82.0]
 
 **The mail reminder could not be dismissed.** It carries the highest fixed
-value of anything in its file, so it sat at the top of `/cn next` â€” and the
+value of anything in its file, so it sat at the top of `/cn next` — and the
 provider that builds it skipped the hide-and-defer checks its two neighbouring
 loops apply. Pressing **Ignore** said *"Ignored: 3 mail expiring"*, wrote the
 entry, listed it in `/cn hidden`, and put the row straight back on the next
@@ -1789,28 +1858,28 @@ had not been revised in fifteen to thirty releases.
   the arrow silently gave up on a recipe you had not bought, naming an
   unrelated one as the reason.
 - **`/cn contribute forget` did not forget.** It cleared the stored chains and
-  left the dependency graph they had been published into â€” so every quest they
+  left the dependency graph they had been published into — so every quest they
   named stayed locked, still explained as *"from an imported chain, not from
   your own play"*, until you reloaded.
 - **Your own observations were being credited to somebody else's import.**
   Both the importer and your own quest-chain harvest write into the same
-  graph, and only the importer stamped where its data came from â€” so a quest
+  graph, and only the importer stamped where its data came from — so a quest
   seen on three of your own characters was reported as imported. That is the
   one distinction the import feature calls its whole safety model.
 - **`/cn capture` could manufacture the defect it exists to catch.** The
   map-span capture ignored the flag saying the client had refused to answer,
-  and recorded the refusal's placeholder â€” "this map is one yard square" â€” as
+  and recorded the refusal's placeholder — "this map is one yard square" — as
   a successful measurement, in the file you paste into a bug report. The
   refusal happens during a loading screen, which is exactly when someone runs
   that command.
 - **Titles printed with the client's padding.** The game returns them padded
-  for concatenation â€” `" the Explorer"` â€” and one of the two places that read
+  for concatenation — `" the Explorer"` — and one of the two places that read
   a title trimmed it while the other, which is the one everything now uses,
   did not. The addon was matching one string and showing another.
 - **A faction gate was the one untranslated word on the screen.** `/cn why` on
   a faction-locked quest printed "Alliance only" on a German client, three
   lines under a correctly translated class list.
-- **`/cn petscan`'s three numbers did not add up** â€” unobtainable species were
+- **`/cn petscan`'s three numbers did not add up** — unobtainable species were
   counted in the total and in neither figure beneath it. `/cn sets` said
   "1 sets read" and "1 activities".
 
@@ -1821,7 +1890,7 @@ had not been revised in fifteen to thirty releases.
   game's own id now rather than as a word, so it reads in your language rather
   than in whichever language the alt was levelled in.
 - **Roughly nine hundred mount rows, and every reputation row, stopped
-  carrying timestamps nothing reads** â€” written on every login and saved on
+  carrying timestamps nothing reads** — written on every login and saved on
   every logout since the stores were created. Two earlier cleanups removed the
   same field from five other stores and missed these two. Existing saved data
   is cleaned up once, on login.
@@ -1830,7 +1899,7 @@ had not been revised in fifteen to thirty releases.
 
 **Being inside an instance is a fact about the doorway, not about the
 company.** 0.80.0 correctly stopped calling a solo raid clear "an instance
-with a group" â€” and in doing so left the other half of the question unasked.
+with a group" — and in doing so left the other half of the question unasked.
 Standing inside anything, alone or not, a herb in Durotar is not something you
 can go and do; it is something you can do after a loading screen. So a player
 soloing Firelands could be handed an outdoor world quest as the best next
@@ -1838,8 +1907,8 @@ thing, and `/cn plan` would lay out a walking route they could not start.
 
 The addon now ranks by **where a thing is**, not by what type it is. Inside an
 instance, anything with a known location that is not in here with you is ranked
-down and says so. Anything that is in here â€” or that has no location at all,
-like the mount off the last boss â€” is left exactly where it was. That is a
+down and says so. Anything that is in here — or that has no location at all,
+like the mount off the last boss — is left exactly where it was. That is a
 better rule than the old list of types in both directions: the old one buried
 the mount you came for and said nothing about the quest three zones away.
 
@@ -1849,21 +1918,21 @@ the mount you came for and said nothing about the quest three zones away.
   refuses with the reason rather than a generic shrug. `/cn situation` now has
   something to say about being inside on your own.
 - **Vendor-sold recipes have never been found.** That provider matched a
-  merchant's item id against a table keyed by trade-skill recipe ids â€” two
-  unrelated number spaces â€” so it produced a row only where the two numbers
+  merchant's item id against a table keyed by trade-skill recipe ids — two
+  unrelated number spaces — so it produced a row only where the two numbers
   happened to collide by accident. Every real vendor-sold recipe was invisible,
   and each coincidence was a ranked row named after an unrelated recipe with
   directions to a vendor selling something else. This is the same collision
   0.80.0 removed from the tooltip; it had a sibling and nobody looked.
 - **`/cn drops` could answer "nothing" for a minute at a time.** 0.80.0 began
   remembering searches that found nothing, to stop tooltips hammering the
-  Adventure Guide â€” and recorded three different things as one: a search that
+  Adventure Guide — and recorded three different things as one: a search that
   found nothing, a search that had not finished yet (the client's is
   asynchronous, so the first one never has), and a search that never ran
   because the Adventure Guide was open. Only the first is remembered now.
 - **0.81.0's own first attempt compared the wrong maps.** It asked whether two
   things were in the same *zone*, and most modern instance maps sit inside
-  their outdoor zone â€” so the world quest on the other side of the door
+  their outdoor zone — so the world quest on the other side of the door
   compared equal and nothing outside was ranked down at all. It compares
   instance identity now, which also means two floors of one dungeon are one
   place.
@@ -1875,7 +1944,7 @@ the mount you came for and said nothing about the quest three zones away.
 
 **If you solo old raids for mounts, this release is for you.** The addon has
 been quietly demoting mounts, pets, toys, appearances, rares, treasures,
-vendors and recipes by 65% whenever you were inside an instance â€” including
+vendors and recipes by 65% whenever you were inside an instance — including
 when you were in there completely alone. Soloing old content is how almost all
 of those are farmed, so the addon was burying the exact thing you had walked in
 for, and explaining it with "you are in an instance with a group" to a player
@@ -1892,8 +1961,8 @@ releases, rather than the code the last one changed.
   A real group still does. `/cn situation` also says "an instance" rather than
   "a instance", which it had been printing since 0.44.0.
 - **Tooltips claimed ordinary items were recipes.** The recipe lookup indexed
-  a table keyed by trade-skill recipe ids using an *item* id â€” two unrelated
-  number spaces â€” so any item whose id happened to collide with a captured
+  a table keyed by trade-skill recipe ids using an *item* id — two unrelated
+  number spaces — so any item whose id happened to collide with a captured
   recipe got "Recipe: not known by this character" and a list of which of your
   alts know it. On a stack of ore. It also reported the collision as an *exact*
   match, which suppressed the "matched by name" caveat that would have warned
@@ -1909,8 +1978,8 @@ releases, rather than the code the last one changed.
   reasoning that a repeat search only costs something when a player asks for
   one. That stopped being true when tooltips became a caller: most items are
   not boss drops, so the common case was the uncached one, and sweeping a loot
-  window or auction-house page re-ran a full journal search â€” with a save and
-  restore of the Adventure Guide's own selection â€” dozens of times a second.
+  window or auction-house page re-ran a full journal search — with a save and
+  restore of the Adventure Guide's own selection — dozens of times a second.
 - **Rare alerts ran a full sweep on every minimap update.** `Rares.lua` has a
   comment naming this exact handler as the one it could not throttle from
   where it sat. Nineteen releases later, it is throttled. With alerts on,
@@ -1933,18 +2002,18 @@ releases, rather than the code the last one changed.
 ## [0.79.0]
 
 **If `/cn go` has been printing `table: 0x0000...` at you, that is fixed.**
-0.78.0 started showing the note a waypoint provider attaches to a success â€”
-"the arrow is set; the game does not allow a map pin here" â€” and TomTom was
+0.78.0 started showing the note a waypoint provider attaches to a success —
+"the arrow is set; the game does not allow a map pin here" — and TomTom was
 handing back its internal waypoint handle in that slot instead of a sentence.
 Every player using TomTom saw the handle. The contract now refuses anything
 that is not a sentence, so a provider that gets this wrong in future prints
 nothing rather than gibberish.
 
-### Fixed â€” 0.78.0's own damage
+### Fixed — 0.78.0's own damage
 
 - **`/cn go` printed an internal handle under every waypoint.** See above.
 - **`/cn arrow on` left the arrow frozen where it was.** 0.78.0 stopped the
-  redraw when the arrow was switched off â€” correctly â€” and never started it
+  redraw when the arrow was switched off — correctly — and never started it
   again when it was switched back on. The arrow appeared, pointed at whatever
   direction it had last been given, and stayed there.
 - **A rare the client had stopped reporting was still offered.** 0.78.0 gave
@@ -1953,17 +2022,17 @@ nothing rather than gibberish.
   right now" instead of being routed to.
 - **Riding past the same corpse three times counted as three encounters.**
   0.78.0 switched the vignette walk to the unfiltered list so the "already
-  dead" flag would survive, and went on recording dead rows as sightings â€”
+  dead" flag would survive, and went on recording dead rows as sightings —
   a number `/cn goal` shows you.
 
-### Fixed â€” code untouched for many releases
+### Fixed — code untouched for many releases
 
 - **Four of the six places that set a waypoint said nothing at all.** The
   Goals tab's "Next step" button produced no chat output whatsoever, a world
   map pin click was silent, and a follow-mode hub advance inside an instance
   both failed to place the pin and never mentioned it. All six now go through
   one function, so a headline and its caveat cannot drift apart again. Follow
-  mode still does not narrate â€” it reports a refusal and nothing else.
+  mode still does not narrate — it reports a refusal and nothing else.
 - **`/cn alts` told you to switch to a character that had already done it.**
   For recipes and titles the named character is the one who *holds* it, and a
   title cannot be earned twice. The list read "already knows it: Bob, Carol"
@@ -1989,52 +2058,52 @@ nothing rather than gibberish.
   what it is, and the choice survives the rename from the old numeric id.
 - **A currency breakdown row said "N collected" about a cap.** It now says
   "not at cap", which is what the number counts.
-- **Three providers subscribed to constantly-firing events with no throttle** â€”
+- **Three providers subscribed to constantly-firing events with no throttle** —
   the same defect fixed for one file in 0.78.0, left standing in three others.
 
 ## [0.78.0]
 
 **Last release's headline fix reached nobody.** The migration that was meant
-to clear the broken frame positions looked in `db.account.settings` â€” a table
+to clear the broken frame positions looked in `db.account.settings` — a table
 this addon does not have. Settings live at `db.settings`. So it ran, found
 nothing, stamped itself done, and every position saved in the broken shape
 survived and was restored against the same wrong anchor. If the heads-up box
 still would not stay where you put it after 0.77.0, that is why. The real
 reset runs now.
 
-### Fixed â€” 0.77.0's own damage
+### Fixed — 0.77.0's own damage
 
 - **The window filter stopped matching numbers.** 0.77.0 ran the name-cleaning
   function over the *value* column too, and that function strips leading
-  punctuation and digits â€” which is right for a name and destructive for the
+  punctuation and digits — which is right for a name and destructive for the
   column the numbers live in. "6 left" became "left"; "40 / 60" and "85%"
   became nothing at all. So filtering by any number matched no row, and the
-  cross-tab counts were computed from the same erased text â€” the exact
+  cross-tab counts were computed from the same erased text — the exact
   mismatch that change was written to remove, still there for every numeric
   row.
 - **`/cn travel`'s walking comparison was never marked as an estimate.** The
   confidence helper compares against named levels and was handed a raw
-  boolean, which matches neither â€” so it returned the *measured* form always,
+  boolean, which matches neither — so it returned the *measured* form always,
   in the one line whose comment says a measured figure and a default are not
   the same claim.
 - **The new "no map pin here" caveat printed above its own headline**, and at
-  four of six call sites had no headline at all â€” a bare indented sentence
+  four of six call sites had no headline at all — a bare indented sentence
   with nothing over it, on every hub advance in follow mode inside an
   instance.
 - **Auto-advance charged players who have it switched off.** The "is this on"
   test sat inside the throttled body, so every minimap vignette still
   allocated a closure and scheduled a timer for the default setting. All eight
   events also shared one throttle, so a quest turn-in arriving mid-burst lost
-  its immediate answer â€” on the single moment the feature exists for.
+  its immediate answer — on the single moment the feature exists for.
 
-### Fixed â€” code untouched for many releases
+### Fixed — code untouched for many releases
 
 - **A rare somebody else killed was recommended for ever.** The client tells
   the addon a rare is dead; the reader both filtered those out *and* dropped
   the flag from the rows it built, so the code that records "seen already
   dead" could never see one. Every clear fell back to a "it vanished within
   150 yards of me" guess, which misses anything finished while you rode past.
-- **Turning the arrow off left it redrawing ten times a second** â€” rotation,
+- **Turning the arrow off left it redrawing ten times a second** — rotation,
   colour and two text updates on a hidden frame, for the rest of the session.
   The close button 0.77.0 added made it trivially easy to hit. `/cd navdiag`
   now reports whether that redraw is running.
@@ -2045,7 +2114,7 @@ reset runs now.
   addon's own parser rejects, so `/cn unhide` could not name it back either.
 - **Treasures could not be explained.** The module emits rares and treasures
   from one store and only rares had an eligibility rule, so half its rows
-  answered "unknown" â€” `/cn why` said nothing useful and the auto-advance
+  answered "unknown" — `/cn why` said nothing useful and the auto-advance
   staleness test fell through to a full scan every time.
 - **Every coin picked up rebuilt the currency recommendations.** That event
   fires constantly, which is why the *scan* behind it is throttled to a
@@ -2058,17 +2127,17 @@ reset runs now.
   defect. Both halves are translatable keys now, and so is the heads-up
   line's "stop N of M".
 - **The close button's footprint was defined in two files**, and the two
-  frames that gained one in 0.77.0 reserved no room for it â€” so the right end
+  frames that gained one in 0.77.0 reserved no room for it — so the right end
   of the follow header was a live click that stopped the route, with nothing
   drawn there.
 - **`/cn uistatus` reported the minimap angle in radians.** It is degrees, and
-  the default is 225, so it printed "225.00 rad" â€” thirty-five full turns.
+  the default is 225, so it printed "225.00 rad" — thirty-five full turns.
 - Plus: the arrow wrote an empty table into saved data on every first build,
   and a lifetime turn-in counter was incremented for ever and read by nothing.
 
 ## [0.77.0]
 
-**The heads-up box drags and then does not stay â€” this fixes that, and gives
+**The heads-up box drags and then does not stay — this fixes that, and gives
 the follow list and the arrow the same close button the heads-up line already
 had.** Three of the four movable frames saved their position without the
 corner they were anchored *to*, so when that differed from the anchor itself
@@ -2076,35 +2145,35 @@ the offsets came back applied against a different corner of the screen and the
 frame reappeared somewhere the player never put it. One function now, used by
 all four.
 
-### Fixed â€” data loss in both scans, from last release
+### Fixed — data loss in both scans, from last release
 
 - **A half-warm client deleted every row in the categories that stayed
   quiet.** 0.76.0 added a prune to the zone and achievement scans, gated on a
-  whole-store counter â€” and both walks are *per category*. So the ordinary
+  whole-store counter — and both walks are *per category*. So the ordinary
   case, where one expansion answers and three do not, deleted every row in the
   three, taking every character's readings with them. A row is only a
   candidate for deletion when the category it belongs to answered.
 
-### Added â€” a way out of every frame drawn over the world
+### Added — a way out of every frame drawn over the world
 
 - **The follow list and the arrow now have a hover x and a tooltip**, the same
   control the heads-up line got when you asked for one. The follow frame could
   previously only be dismissed by knowing `/cn follow`, and the arrow ate world
   clicks in its own footprint with nothing on screen explaining why.
 - **`/cn uistatus` no longer throws away your window position.** Running the
-  diagnostic while the window happened to be closed â€” its state most of the
-  time â€” silently discarded a position you had set, recentred the window and
+  diagnostic while the window happened to be closed — its state most of the
+  time — silently discarded a position you had set, recentred the window and
   forced it open. It reports now, and offers `/cn uistatus reset` as the
   repair. It also shows the relative anchor, which is the field the bug above
   was hiding in.
 
-### Fixed â€” features that never worked
+### Fixed — features that never worked
 
 - **`/cn bags` has never once reported a carried recipe.** The class id was
   read one position short of where the client returns it, so the variable held
   an icon file id and the test against "recipe" was never true on any client.
   The whole feature, dead in one missing placeholder.
-- **`/cn travel` quoted "running the whole way" at flying speed** â€” it asked
+- **`/cn travel` quoted "running the whole way" at flying speed** — it asked
   for the speed of whatever you are doing *now*, and anyone reading that
   command is normally mounted. A fifty-minute walk read as fourteen minutes,
   which makes the flight the line exists to justify look like a bad idea.
@@ -2112,37 +2181,37 @@ all four.
   map pin.** The sentence explaining why was composed by the provider and then
   discarded, because the caller read it only on failure.
 
-### Fixed â€” search, and things shown to the player
+### Fixed — search, and things shown to the player
 
 - **The cross-tab search and the tab's own filter asked different
   questions.** The "Also on:" counts searched the raw text, colour codes
   included, so typing any hex fragment reported a match on every row of every
-  tab and none where you were standing â€” and a term that appeared only in the
+  tab and none where you were standing — and a term that appeared only in the
   right-hand column was counted and then not found when you clicked through.
 - **Bank ages were printed in raw hours**: "seen 336h ago" for a bank read a
   fortnight before.
 - **Nine commands padded their columns with spaces.** WoW ships no monospace
   chat font, so that produces a ragged edge that reads as a bug rather than a
-  table â€” the rule this addon states in two places and fixed in the window,
+  table — the rule this addon states in two places and fixed in the window,
   while the chat side kept it. `/cn elsewhere` was the worst: a day-to-day
   command whose names are long enough to wrap mid-row. A build check now fails
   on a new one.
-- **"Route complete. 1 stops, everything on it done."** â€” unpluralised, and an
+- **"Route complete. 1 stops, everything on it done."** — unpluralised, and an
   English literal bolted onto a translated headline.
 - **`/cn mode <profile>` answered with no headline**, so its two lines arrived
   as orphan text in the middle of the chat frame.
 
-### Fixed â€” cost, and two rules written twice
+### Fixed — cost, and two rules written twice
 
 - **Auto-advance ran on every minimap vignette.** That event fires many times
-  a second while moving through any zone with rares in it â€” which is exactly
-  when auto-waypoint is on â€” and each firing ran a linear scan of the whole
+  a second while moving through any zone with rares in it — which is exactly
+  when auto-waypoint is on — and each firing ran a linear scan of the whole
   candidate list and a full re-rank with the recommendation hooks live. It is
   throttled now, like the three other firehose events in the addon.
 - **The window's refresh subscription was not idempotent** while its sibling
   was, so a late-registered provider would have added another forty redraw
   handlers each time.
-- **`/cn why` rebuilt the ranking weights by hand** â€” in the one function whose
+- **`/cn why` rebuilt the ranking weights by hand** — in the one function whose
   own header promises it does the same arithmetic the scorer does.
 
 ## [0.76.0]
@@ -2152,11 +2221,11 @@ protect.** Both were mine. If you upgraded through 0.75.0 and ran an
 achievement scan on an alt, or ran one in the first seconds after logging in,
 this is the release that stops it and tells you what to do about it.
 
-### Fixed â€” data loss in the achievement scan
+### Fixed — data loss in the achievement scan
 
 - **A scan on an alt deleted every achievement row the main had progress
   on.** 0.75.0 replaced a store wipe with a prune, and marked a row as "still
-  exists" only inside the branch that stored it â€” a branch gated on *this*
+  exists" only inside the branch that stored it — a branch gated on *this*
   character's progress. So on a fresh alt, nearly every row was neither stored
   nor marked, and the prune deleted it, taking the main's readings with it.
   That is exactly the loss the wipe was removed to prevent, brought back in a
@@ -2169,9 +2238,9 @@ this is the release that stops it and tells you what to do about it.
   0.61.0 and 0.71.0; this third writer had none. A scan that read nothing now
   changes nothing.
 
-### Fixed â€” the upgrade that silently emptied your recommendations
+### Fixed — the upgrade that silently emptied your recommendations
 
-0.75.0's migration cleared the old shared criteria field, correctly â€” but for
+0.75.0's migration cleared the old shared criteria field, correctly — but for
 an upgrading account that field was the only figure nearly every row had, so
 the achievement shortlist, `/cn next`'s achievement rows and every goal plan
 went empty at once, with nothing to say why and nothing that would fix it on
@@ -2184,14 +2253,14 @@ its own.
   account-wide stamp, so a main that had run setup silenced the prompt for
   every alt that never had.
 
-### Fixed â€” the zone learner, which could not learn and could learn wrongly
+### Fixed — the zone learner, which could not learn and could learn wrongly
 
 - **It only ever refreshed the winner's baseline.** The other candidate's
-  reading went stale the moment you quested there and stayed stale â€” so on the
+  reading went stale the moment you quested there and stayed stale — so on the
   next criteria update it read above its own baseline and counted as a second
   mover, and nothing was ever learned. For the player who works both Nagrands,
   which is the only player it was written for, the mechanism was dead. Worse,
-  a criteria update from anywhere â€” a pet battle, a raid â€” could find only the
+  a criteria update from anywhere — a pet battle, a raid — could find only the
   stale row above its baseline and bind a phantom. A comparison is only
   evidence against a baseline something maintains; it maintains one now.
 - **It ran a per-criterion sweep on every criteria burst.** Every modern zone
@@ -2201,35 +2270,35 @@ its own.
   throttled otherwise.
 - **And a turn-in still reports that it moved something.** The learning pass
   writes fresh readings back, so it had to be ordered after the reading that
-  decides whether anything changed â€” otherwise the invalidation that carries a
+  decides whether anything changed — otherwise the invalidation that carries a
   turn-in into the ranking would have been permanently silent.
 
-### Fixed â€” a workaround, by removing what it worked around
+### Fixed — a workaround, by removing what it worked around
 
 - **The zone store never deleted anything.** An achievement retired in a game
   patch kept its row for the life of the account, and the client will never
-  name it again â€” which is the single reason 0.75.0 had to invent a table of
+  name it again — which is the single reason 0.75.0 had to invent a table of
   "rows the client has ever named" and a rule about which walk may settle. That
   rule was itself wrong: two lookups inside one cold window marked the whole
   store retired and then cached a list with the zone's own achievement
   missing, for the rest of the session. Rows the game no longer returns are
   deleted now, the exact test is back, and the workaround is gone.
 
-### Fixed â€” smaller, all user-facing
+### Fixed — smaller, all user-facing
 
 - **The cold-scan retry announced the rows it walked past, not the rows it
-  read** â€” "412" for a scan that read 40. The same mistake fixed at
+  read** — "412" for a scan that read 40. The same mistake fixed at
   `/cn scanlore` in 0.72.0 and at the Rescan button in 0.74.0, in a third
   place one release later.
 - **`/cn errors` told you to clear a notice and then refused to.** Reading it
   in the command did not count as having seen it, and only seen notices were
-  cleared â€” so you got "Cleared 0 recorded errors" and the notice came back
+  cleared — so you got "Cleared 0 recorded errors" and the notice came back
   twelve seconds later at login. Printing it counts now.
 - **A database that lost nothing was told it had.** The friendship-rank notice
   fired for accounts that upgraded through the *corrected* migration and never
   lost anything.
-- **`/cn zones forget` counted achievements and called them zones** â€” three
-  learned in one zone read as "Forgot 3 learned zones" â€” and said "Forgot 0"
+- **`/cn zones forget` counted achievements and called them zones** — three
+  learned in one zone read as "Forgot 3 learned zones" — and said "Forgot 0"
   when there had never been anything to forget.
 
 ## [0.75.0]
@@ -2238,10 +2307,10 @@ its own.
 per-character split it claimed to add never took effect.** Both were mine, and
 both are corrected here.
 
-### Fixed â€” the zone binding, inverted
+### Fixed — the zone binding, inverted
 
-0.74.0 stored *zone â†’ achievement* and let a binding **promote** that
-achievement above every other rule. Its guard was "more than one candidate" â€”
+0.74.0 stored *zone → achievement* and let a binding **promote** that
+achievement above every other rule. Its guard was "more than one candidate" —
 and this addon's own notes say every modern zone has at least two, its story
 achievement and its "Sojourner of <Zone>" companion. So the learning path ran
 everywhere, and the first quest of either kind bound the zone to whichever it
@@ -2251,30 +2320,30 @@ unmentioned at 30 of 60, and the zone stopped producing recommendations
 entirely.
 
 - **The relation is now the true one: an achievement belongs to a zone.**
-  Stored that way it *excludes* rather than promotes â€” a candidate known to
-  belong to a different zone is not a candidate here â€” and everything else is
+  Stored that way it *excludes* rather than promotes — a candidate known to
+  belong to a different zone is not a candidate here — and everything else is
   left to the ordering that was already correct. A binding learned in an
   ordinary zone can do no harm at all, by construction rather than by a guard.
 - **What 0.74.0 called evidence was not.** It compared the live figure against
   a function that answers zero for any row this character has never scanned,
-  and `CRITERIA_UPDATE` fires globally â€” for a pet battle, a raid criterion,
+  and `CRITERIA_UPDATE` fires globally — for a pet battle, a raid criterion,
   anything. A character holding progress in Outland's Nagrand, standing in
   Draenor's, bound the wrong zone permanently on the next criteria update
   anywhere. A candidate now counts only when this character has a recorded
   reading for it and the live figure is *higher*.
 - **`/cn zones forget` exists.** 0.74.0 published a clearing function with a
-  comment saying it was there so `/cn reset` could call it â€” there is no
+  comment saying it was there so `/cn reset` could call it — there is no
   `/cn reset` in this addon and nothing called it, so a wrong binding was
   permanent. Bindings also re-learn from newer evidence, and a binding to an
   achievement the game has retired is dropped by the next scan.
 
-### Fixed â€” the per-character achievement split, which was inert
+### Fixed — the per-character achievement split, which was inert
 
 0.74.0 added a `progress` table keyed by character and then never wrote it:
 the scan built a fresh table literal that bypassed the writer, and the writer
 went on setting the flat field the split was meant to retire. So the defect it
-was written to fix â€” an alt reading the main's criteria count, being told it
-was two criteria from finishing, and being sent across the world for it â€” was
+was written to fix — an alt reading the main's criteria count, being told it
+was two criteria from finishing, and being sent across the world for it — was
 still shipping.
 
 - The scan writes through the one writer, and **no longer wipes the account
@@ -2286,11 +2355,11 @@ still shipping.
   one character's numbers while printing another's, and a pinned achievement
   goal reported whichever character scanned last.
 
-### Fixed â€” caching, where two guards were set wrong in opposite directions
+### Fixed — caching, where two guards were set wrong in opposite directions
 
 - **One retired achievement disabled the zone cache for the life of the
   account.** The scan only ever writes rows, so an achievement retired in a
-  patch keeps its row and the client never names it again â€” which made
+  patch keeps its row and the client never names it again — which made
   0.74.0's "every row answered" test permanently false and the index
   permanently empty. Every lookup then paid the full store walk the cache
   exists to avoid. Rows the client has never answered for are now excluded
@@ -2303,24 +2372,24 @@ still shipping.
   back out missed and re-stamped. The key carries both now.
 - **A map lookup the client refused was cached as an answer**, pinning a
   building to itself for the rest of the session.
-- **The criteria refresh walked the store twice per burst** â€” once purely to
-  populate two variables â€” inside a two-second debounce while questing.
+- **The criteria refresh walked the store twice per burst** — once purely to
+  populate two variables — inside a two-second debounce while questing.
 
-### Fixed â€” what the addon tells you
+### Fixed — what the addon tells you
 
 - **`/cn errors` contradicted itself two lines apart**, printing a red notice
   and then "Nothing has gone wrong this session", and the notice could never
   be cleared. It now reads correctly and `/cn errors clear` removes notices
   you have already seen.
 - **The one-time notice about data 0.72.0 destroyed was printed into the login
-  chatter and marked as seen on the way past** â€” the one chance to read it was
+  chatter and marked as seen on the way past** — the one chance to read it was
   the one moment nobody reads. It is delayed now, the way the setup reminder
   already was.
 - **That notice's number counted this character too**, whose ranks were about
   to be restored seconds later. A wrong number in the one message whose entire
   purpose is honesty about data loss.
 - **The cold-scan retry died silently after three attempts anywhere in a
-  session** â€” trivially reached by following the addon's own advice â€” and said
+  session** — trivially reached by following the addon's own advice — and said
   nothing when it succeeded. A scan you asked for is a fresh start now, and a
   successful retry says so and redraws.
 
@@ -2328,32 +2397,32 @@ still shipping.
 
 **The 0.73.0 zone fix could not fire.** It broke the tie between two zones
 sharing a name by comparing the achievement's category with the continent you
-are standing on â€” on the premise that a quest category is a continent. On
+are standing on — on the premise that a quest category is a continent. On
 retail it is an *expansion*: "Warlords of Draenor" is never equal to
 "Draenor", "Burning Crusade" is never equal to "Outland". Neither side ever
 matched, in any of the cases the release was written for. It was also two
 localized strings deciding a branch, which this addon has a standing rule
 against, in the one place the rule warns about.
 
-### Fixed â€” zone identity, from evidence instead of inference
+### Fixed — zone identity, from evidence instead of inference
 
 - **Two zones with one name are now told apart by what actually moved.** When
   your criteria on exactly one candidate change while you are standing in a
-  zone, that candidate is that zone's achievement â€” nothing else can produce
+  zone, that candidate is that zone's achievement — nothing else can produce
   that. The binding is learned, filed under the zone's own map id, and
   outranks every other rule. Two candidates moving at once teaches nothing,
   because it is not evidence about either. Until the evidence arrives the
   ordering is unchanged: deterministic, stable, and occasionally wrong about
-  which Nagrand you meant â€” which is honest, and stops being true the first
+  which Nagrand you meant — which is honest, and stops being true the first
   time you hand a quest in there.
 - **The zone walk asked the client for every name twice.** 0.73.0's
   "did the client answer" counter asked for the name, then asked again through
-  the naming function â€” doubling the cost of the walk this file calls the
+  the naming function — doubling the cost of the walk this file calls the
   whole expense.
 - **A half-awake client's walk was remembered as though it were an answer.**
   The test was "did the client name *anything*", which waves through the case
   that actually happens: some rows resolve, the zone's own does not, and a
-  wrong answer is cached. It is now "did the client answer for every row" â€” a
+  wrong answer is cached. It is now "did the client answer for every row" — a
   partial walk still answers, because a partial list beats a blank tab, but it
   is not committed to memory. That also removed the loading-screen wipe 0.73.0
   added to compensate, which paid for a full store walk on every portal,
@@ -2365,40 +2434,40 @@ against, in the one place the rule warns about.
   Each walk is up to eight client calls that each allocate a table, and it ran
   from the two-second tab refresh and every provider rebuild.
 
-### Fixed â€” the sibling that has had this defect since 0.62.0
+### Fixed — the sibling that has had this defect since 0.62.0
 
 - **Exploration bound the wrong continent's record and then wrote your
-  progress into it.** It learned its zone key from `GetBestMapForUnit` â€” the
-  building you are standing in â€” and learned it from an unordered walk that
+  progress into it.** It learned its zone key from `GetBestMapForUnit` — the
+  building you are standing in — and learned it from an unordered walk that
   returned whichever of two same-named zones came back first. That record then
   received this character's progress and the account's earned flag. It now
   learns the *zone*, and refuses to learn anything when more than one
   achievement matches.
 
-### Fixed â€” scope, which is where three defects were hiding
+### Fixed — scope, which is where three defects were hiding
 
 - **Logging in on your main erased the quest pins your alts still needed.**
   The account-wide store of *where a quest is* was being pruned on "is it in
   MY log", and 0.73.0 wired that sweep to every login. Twenty-five quests in
   your log meant twenty-five locations gone for the whole account. Turning a
   quest in now clears its pin only when the *account* has finished it, and
-  accepting one no longer clears it at all â€” that was 0.73.0's addition, wrong
+  accepting one no longer clears it at all — that was 0.73.0's addition, wrong
   the same way.
 - **An alt was told it was two criteria from finishing the main's
   achievements.** Criteria progress is per character and the earned flag is
   account-wide; the two sibling stores were split in 0.61.0 and 0.64.0 with a
   paragraph each explaining why, and this third one was never revisited. It
-  drives the shortlist, which drives `/cn next` â€” so an alt at 2 of 40
+  drives the shortlist, which drives `/cn next` — so an alt at 2 of 40
   inherited 38 of 40 and was sent across the world to finish it.
 
-### Fixed â€” what the addon tells you
+### Fixed — what the addon tells you
 
 - **A scan the game was not ready for now tries again.** 0.73.0 correctly
   stopped it recording itself and left nothing behind it: the store was no
   longer empty, so the "no data yet" path never fired again, and the Journey
   tab stayed blank until the next login. It retries, a bounded number of
   times.
-- **`/cn setup` reported a game still loading as a defect** â€” in red, pointing
+- **`/cn setup` reported a game still loading as a defect** — in red, pointing
   at an empty `/cn errors`, and stamping setup complete, which silences the
   login reminder. "Not ready" is now its own state that says to try again.
 - **Zones you have never begun no longer fill a list headed "Closest to
@@ -2407,28 +2476,28 @@ against, in the one place the rule warns about.
 - **The addon now says what version 0.72.0 destroyed.** That release's
   migration deleted every friendship rank belonging to a character that was
   not logged in. 0.73.0 fixed the migration for anyone who had not upgraded
-  yet and said nothing to those who had. Nothing can bring the data back â€”
-  each character restores its own on its next login â€” but the addon owes you
+  yet and said nothing to those who had. Nothing can bring the data back —
+  each character restores its own on its next login — but the addon owes you
   the sentence, and now prints it once and keeps it in `/cn errors`.
 - **The migration ladder had a hole.** 0.73.0 bumped the database version past
   its last migration, so the bump ran nothing. A build check now fails on a
   gap.
-- **The tooltip and `/cn list` still described one journey two ways** â€”
+- **The tooltip and `/cn list` still described one journey two ways** —
   "over 20m away" against "About 20m away at least", which also contradicts
   itself. One stem, two renderings.
 
 ## [0.73.0]
 
 **Last release removed the only thing telling the two Nagrands apart.** 0.72.0
-was right that the persisted map stamp was broken â€” it came from the map you
-are standing *on*, which indoors is a building â€” and wrong to conclude that
+was right that the persisted map stamp was broken — it came from the map you
+are standing *on*, which indoors is a building — and wrong to conclude that
 the zone name could replace it. Retail ships two zones called Nagrand, two
 called Shadowmoon Valley and two called Dalaran. This release asks the client
 the question it was actually being asked: not "which map am I standing on" but
 "which zone is this", answered by walking up to the first ancestor the client
 itself calls a zone.
 
-### Fixed â€” zone identity, for the fourth and last time
+### Fixed — zone identity, for the fourth and last time
 
 - **Standing in Draenor's Nagrand showed progress for Outland's.** The name
   match is right and stays; the ordering now prefers the achievement whose
@@ -2436,19 +2505,19 @@ itself calls a zone.
   whenever the client will not name one. It never decides on a guess.
 - **A zone walked while the client was cold stayed empty for the session.**
   Achievement names are asked for, not stored, so in the seconds after a
-  loading screen every row resolves to a placeholder and nothing matches â€”
+  loading screen every row resolves to a placeholder and nothing matches —
   and 0.72.0 cached that empty result deliberately. The Loremaster provider
   wakes on zone changes, so one badly-timed loading screen silently removed
   the Journey tab's "Here" row, the "This zone" block, the provider's rows and
   the turn-in refresh until the next login. A walk the client refused is no
   longer an answer, and the index is cleared on every loading screen.
 - **A scan that measured nothing left the stale index in place**, because the
-  invalidation sat below the early return â€” on the one scan most likely to
+  invalidation sat below the early return — on the one scan most likely to
   have run against a cold client.
 - **`ForZone` for an unknown map answered about the zone you are standing
   in.** A nil name fell through to the default.
 
-### Fixed â€” what the addon learns and what it shows
+### Fixed — what the addon learns and what it shows
 
 - **Upgrading destroyed every alt's friendship rank.** 0.72.0 wrote a
   paragraph explaining that a friendship's rank is the one standing the client
@@ -2456,19 +2525,19 @@ itself calls a zone.
   then had the migration delete every existing copy. It is carried across now.
   This is a correction to a defect that already shipped: if you upgraded
   through 0.72.0, your alts' friendship ranks are gone and nothing can bring
-  them back â€” each character restores its own the next time it logs in.
+  them back — each character restores its own the next time it logs in.
 - **`/cn plan` was being taught that flights are free.** A quest whose map pin
   has not resolved yet reports a map and no point on it, and 0.72.0's test for
-  "this row has no place in it" was true for that shape â€” so ten minutes of
+  "this row has no place in it" was true for that shape — so ten minutes of
   flying plus five of questing was recorded as fifteen minutes of quest work,
   in the highest-volume type feeding the planner's headline figure. Worse, it
   stuck: the estimate is only ever revised downward and zero is the floor.
 - **Two lists headed "closest to finished" held rooms for zones never
-  begun** â€” three rows of `0 / 120` with an empty bar, displacing three
+  begun** — three rows of `0 / 120` with an empty bar, displacing three
   genuinely nearly-done zones. The reserve was written for `/cn zones` and
   applied to every caller.
 - **`/cn setup` reported a clean bill for a scan that recorded nothing**, and
-  stamped setup as complete â€” which silences the login reminder. Setup is most
+  stamped setup as complete — which silences the login reminder. Setup is most
   often run right after logging in, which is exactly when the game refuses.
   The Journey tab's "Rescan zones" button now says whether it worked, too.
 - **An achievement that crossed the "nearly done" boundary still did not reach
@@ -2478,7 +2547,7 @@ itself calls a zone.
   Both sibling handlers do this correctly.
 - **A quest you picked up stayed on the map as one waiting to be picked up.**
   0.72.0 removed the full sweep from every turn-in, correctly, and justified
-  it with a login hook that did not exist â€” so rows dead for any reason other
+  it with a login hook that did not exist — so rows dead for any reason other
   than a turn-in sat in the store, and every read filtered them at two client
   calls each. The login sweep exists now, and accepting a quest drops its pin.
 - **The tooltip recovered the "over 20m" figure by stripping the word "over"
@@ -2491,17 +2560,17 @@ itself calls a zone.
 
 **The zone fix worked, and then cached its answer under the wrong key.**
 0.71.0 matched the zone correctly and then remembered the match under
-`GetBestMapForUnit` â€” the city map indoors, the same wrong value the release
+`GetBestMapForUnit` — the city map indoors, the same wrong value the release
 was written to remove, moved from the match into the memory of it. This
 release stops writing it down at all.
 
-### Fixed â€” the journey, and the cost of keeping it current
+### Fixed — the journey, and the cost of keeping it current
 
 - **The learned zone stamp never settled and was written to disk.** Walking
   into a building stamped one map, walking out stamped another, and the walk
   the stamp exists to avoid ran on every threshold crossed. It also let one
   zone hold two records with two maps, so the tab could show a different
-  achievement on the two sides of a doorway â€” the hash-order symptom 0.71.0
+  achievement on the two sides of a doorway — the hash-order symptom 0.71.0
   set out to end, reintroduced by the fix for it. The match is remembered in
   memory now, for the session, keyed on the zone name it was actually matched
   on, and the old field is removed from saved data.
@@ -2530,7 +2599,7 @@ release stops writing it down at all.
   collapsed the duplicated travel cost in both files and walked past the
   identical duplication one line above it.
 - **The achievement criteria sweep dropped every update after the first in a
-  burst** â€” including the one that crossed the boundary it was watching for â€”
+  burst** — including the one that crossed the boundary it was watching for —
   and never ran again until an unrelated update arrived. It now uses the same
   throttle its two siblings do, which answers at the start of a burst and
   again at the end.
@@ -2538,12 +2607,12 @@ release stops writing it down at all.
   whether or not a number had moved. Its sibling was given that test last
   release; the file it was copied from was not.
 
-### Fixed â€” what the numbers say
+### Fixed — what the numbers say
 
 - **The tooltip and `/cn list` gave different distances for the same
   objective.** The list stopped measuring past twenty minutes and printed
   nothing; the tooltip measured anyway and printed "About 47 minutes away".
-  One function decides now â€” and instead of going silent for the farthest
+  One function decides now — and instead of going silent for the farthest
   objectives, which reads as "unknown" rather than "very far", it says the
   journey is over twenty minutes.
 - **The planner could never learn how long an instance, a vault run or a
@@ -2553,13 +2622,13 @@ release stops writing it down at all.
   row with no place in it has no journey to subtract.
 - **Every reputation scan undid a migration.** The addon has stripped the
   stored, localized standing from renown factions since 0.66.0, and the
-  scanner wrote it straight back on the next `/cn repscan` â€” for every kind of
-  faction â€” while the reader preferred the stored copy to deriving one. An
+  scanner wrote it straight back on the next `/cn repscan` — for every kind of
+  faction — while the reader preferred the stored copy to deriving one. An
   alt's standing showed in whatever language and at whatever rank that
   character last scanned. Nothing localized is stored now; the one genuine
   exception, a friendship's free-text rank, is kept under its own name.
-- **A zone already finished drew as unfinished on the Journey tab** â€” gold,
-  full bar, "60 / 60" â€” on the row a player looks at most.
+- **A zone already finished drew as unfinished on the Journey tab** — gold,
+  full bar, "60 / 60" — on the row a player looks at most.
 
 ## [0.71.0]
 
@@ -2569,15 +2638,15 @@ introduced a zone lookup that was inert two separate ways. This release
 replaces the invention with the solution the neighbouring module has used
 since 0.62.0.
 
-### Fixed â€” the journey, for real this time
+### Fixed — the journey, for real this time
 
 - **In a city, the addon could not tell which zone you were in.** The lookup
   asked the game for your map, which answers with *Dornogal* when you are
-  standing in Dornogal â€” and no achievement is named after a capital. So the
+  standing in Dornogal — and no achievement is named after a capital. So the
   refresh did nothing for any quest handed in indoors, which is where campaign
   turn-ins happen. It reads the surrounding zone now.
 - **Everywhere else it refused on purpose.** It declined whenever two
-  achievements contained the zone name, to avoid confusing the two Nagrands â€”
+  achievements contained the zone name, to avoid confusing the two Nagrands —
   and every modern zone ships a story achievement *and* a "Sojourner of
   <Zone>" companion, so it declined in all of them. The name is matched as a
   whole word at the end now, the true duplicates are settled by learning the
@@ -2588,46 +2657,46 @@ since 0.62.0.
   was one nothing could move. One lookup now.
 - **Which of a zone's two achievements it showed depended on hash order.** A
   zone's story achievement and its "Sojourner of <Zone>" companion are both
-  legitimate matches; the choice between them is now a named, total rule â€”
-  unfinished first, then the shorter name, then the lower ID â€” so the tab
+  legitimate matches; the choice between them is now a named, total rule —
+  unfinished first, then the shorter name, then the lower ID — so the tab
   shows the same one on every login rather than whichever the table happened
   to reach first.
 - **An achievement the game will not answer about was recorded as not
-  earned** â€” and the guard written to prevent that could not fire, because the
+  earned** — and the guard written to prevent that could not fire, because the
   game returns nothing rather than failing. One `CRITERIA_UPDATE` in the
   seconds after a loading screen un-earned a zone the account had finished.
 - **A scan that measured nothing recorded itself as having run.** The criteria
   API routinely answers nothing at login, which is why the writer guards
-  against it â€” and the marker saying "this character has scanned" was written
+  against it — and the marker saying "this character has scanned" was written
   anyway. An alt's first login after upgrading recorded nothing, marked itself
   done, and never rescanned: "not started" for every zone it had fully
   quested, permanently.
 - **`/cn zones` and the Journey tab put zones with nothing left in them at the
-  top**, with the reason "100% done â€” finishing is cheaper than starting". The
+  top**, with the reason "100% done — finishing is cheaper than starting". The
   recommendation list has always had that rule; the two display paths did not.
 
-### Fixed â€” distances
+### Fixed — distances
 
 - **One definition of a measured journey, instead of two.** The window's
   tooltips asked the travel model whether it was confident and printed nothing
   when it was not; `/cn list` and the deadline guard accepted any number that
-  came back â€” including a multi-hop route through a flight network the model
+  came back — including a multi-hop route through a flight network the model
   is partly guessing at. The same rare could show a distance in one and not
   the other.
 - **A row could keep a stale answer about its own journey for ever.** When the
   addon reuses an unchanged candidate it compares a list of fields, and the
   new "was this journey measured" flag was not on it. Because the capped and
   fabricated costs are both exactly the same number, a row that gained a real
-  measurement kept the old answer â€” and lost its deadline guard permanently.
+  measurement kept the old answer — and lost its deadline guard permanently.
 - **Two providers priced every journey twice**, and the travel model
   deliberately does not cache a failure, so for any vendor it could not route
   that was two full estimates per row in the two highest-volume providers.
 
-### Fixed â€” other
+### Fixed — other
 
 - **The addon could not find a faction by the name it had just printed.**
   Reputation names came off disk in whatever language last scanned, while the
-  lookup asked the game â€” so a list row read one thing and searching for it
+  lookup asked the game — so a list row read one thing and searching for it
   found nothing. Five readers now ask the game first.
 - **A provider registered after login never taught the window to redraw for
   its events.** The same closed-registry defect a previous release documented
@@ -2639,11 +2708,11 @@ Eleven defects, and the honest headline is that **last release's fix for the
 reported quest-turn-in problem did not work.** Most of what follows is the
 rest of that mistake and its neighbours.
 
-### Fixed â€” the quest turn-in, properly this time
+### Fixed — the quest turn-in, properly this time
 
 - **0.69.0 wired the zone refresh to the wrong event.** `QUEST_TURNED_IN`
   fires *before* the game moves the achievement criteria, and the throttle
-  around it runs on the first call â€” so for the ordinary case, one quest
+  around it runs on the first call — so for the ordinary case, one quest
   handed in, it read the number it already had and wrote it straight back.
   The reported symptom was unchanged. It listens for the criteria actually
   moving now, which is what the sibling module has always done.
@@ -2652,43 +2721,43 @@ rest of that mistake and its neighbours.
   zone".
 - **It also cleared an achievement the account had already earned.** The flag
   was being derived by comparing two numbers that belong to *you*, while the
-  flag itself belongs to the *account* â€” so an alt three quests into a zone
+  flag itself belongs to the *account* — so an alt three quests into a zone
   the main had finished un-earned it in passing, and the addon started
   recommending a completed zone. It asks the game directly now.
-- **And it could rewrite the wrong continent's zone.** Zone names repeat â€”
-  two Nagrands, two Shadowmoon Valleys, three Dalarans â€” and the lookup
+- **And it could rewrite the wrong continent's zone.** Zone names repeat —
+  two Nagrands, two Shadowmoon Valleys, three Dalarans — and the lookup
   matches on name. Where the name is ambiguous it now declines rather than
   guessing; the next login corrects everything anyway.
 
-### Fixed â€” distances that were never measured
+### Fixed — distances that were never measured
 
 - **"About 20 minutes away" for something you can see from where you are
   standing.** The travel model never refuses: when it cannot work a journey
   out it hands back a placeholder, and every caller but one was throwing away
   the flag that says which is which. Four more places price content that is
-  not anywhere at all â€” the Great Vault, a dungeon, a crafting order â€” with a
+  not anywhere at all — the Great Vault, a dungeon, a crafting order — with a
   small routing weight, and `/cn list` printed those as distances too.
 - **The 0.69.0 deadline rule inverted itself at the top of its range.** Travel
   cost is capped, so every genuine journey over twenty minutes lands on the
-  cap and became indistinguishable from "could not route this" â€” which was
+  cap and became indistinguishable from "could not route this" — which was
   exempted. The result: of two world quests eight minutes from expiring, the
   *farther* one kept full urgency and the nearer one lost all of it.
 - **A journey nobody measured was being subtracted from your measured task
   times**, biasing everything the addon has learned about how long things take
   you downward.
 
-### Fixed â€” the rest
+### Fixed — the rest
 
 - **A scan at a cold moment could empty the whole Journey tab.** When the game
   declines to answer about criteria it answers zero, and the full scan wrote
-  that in â€” while its own sibling forty lines below, and two other modules,
+  that in — while its own sibling forty lines below, and two other modules,
   all guard against exactly that.
 - **A full walk of every quest achievement in the game, on every login, of
   every character, for ever.** The 0.69.0 rescan condition asked a question
   that can never become false. It records that a character has scanned
   instead.
 - **`/cn rep <name>` could not find a faction after a client language
-  change** â€” the third command of that shape, where the other two were
+  change** — the third command of that shape, where the other two were
   converted two releases ago.
 - **`/cn find` wrote quest pins to disk.** Building every tab so the search
   has something to read reached a function that records what it walks past.
@@ -2698,16 +2767,16 @@ rest of that mistake and its neighbours.
 Fifteen defects, and an answer to two of the three things that have been
 waiting on somebody logging in.
 
-### Fixed â€” the ranking
+### Fixed — the ranking
 
 - **The 0.68.0 urgency guard was wrong in the ordinary case.** It refused
   urgency to anything whose deadline was shorter than the journey *plus the
-  median time this account takes over that whole type of thing* â€” so a "kill 8
+  median time this account takes over that whole type of thing* — so a "kill 8
   boars" world quest thirty yards away with five minutes left scored no
   urgency at all, because four campaign quests had set the median at eight
   minutes. World quests carry no other deadline signal, so that removed all of
   it. It also trusted a travel cost the addon uses to mean "far away, I
-  stopped counting" â€” twenty minutes of journey that was never measured, which
+  stopped counting" — twenty minutes of journey that was never measured, which
   the client produces routinely for a window after every loading screen. The
   guard now fires only on a journey the model actually costed.
 - **A deadline that counts for nothing now says so where you would look.**
@@ -2717,41 +2786,41 @@ waiting on somebody logging in.
 - **`/cn alts` and `/cn selftest` were teaching the addon that twenty
   objectives had been shown to you** every time you ran them.
 
-### Fixed â€” a quest you turn in
+### Fixed — a quest you turn in
 
 - **Handing in a quest did not move the Journey tab.** Zone progress was
   written by a full scan and by nothing else, and that scan runs at login, on
-  `/cn scanlore`, and from the "Rescan zones" button â€” so the zone you had
+  `/cn scanlore`, and from the "Rescan zones" button — so the zone you had
   just advanced went on reporting the count it had when you logged in. This is
   the reported symptom, and it was never the recommendation list, which has
   always updated on turn-in. The zone you are standing in refreshes now, from
   two client calls, debounced so a chain handing in three at once costs one
   refresh.
 
-### Fixed â€” alts
+### Fixed — alts
 
 - **An alt could be permanently locked out of the 0.68.0 repair.** The rescan
   that fixed the Loremaster store triggered on a flag that is shared by the
   whole account, so the first character to log in fixed it for everybody and
-  every other character then had no trigger left â€” while the thing *they* were
+  every other character then had no trigger left — while the thing *they* were
   missing was their own per-zone progress. And the migration that forced that
   repair emptied the store outright, which threw away every alt's progress to
   restore one boolean. It takes nothing now, and each character repairs itself
   the first time it plays.
 
-### Fixed â€” numbers and text
+### Fixed — numbers and text
 
 - **`/cn list` printed the addon's internal "somewhere unknown" constant as a
-  distance** â€” "20m away" for something you can see from where you are
+  distance** — "20m away" for something you can see from where you are
   standing. It was the one day-one command the 0.68.0 fix did not reach.
 - **`/cn goal` on a rare said "Seen 1 time here"** for a rare with no stored
   count, and the tooltip said "First time you have met it" again on the very
   next encounter after an upgrade.
-- **The cross-tab search named tabs in English** â€” "Also on: Collections (12)"
+- **The cross-tab search named tabs in English** — "Also on: Collections (12)"
   beside a tab strip reading *Sammlungen*.
 - **The search hint could be drawn outside the window**, over the game, when
   four tabs matched at larger text sizes.
-- **A type filter claimed rows the list does not contain** â€” it counted twelve
+- **A type filter claimed rows the list does not contain** — it counted twelve
   while the list draws eleven, the twelfth being the headline above it.
 - **The Welcome screen and the Hud options panel ignored the text-size
   setting**, which the release that introduced it named as fixed.
@@ -2762,7 +2831,7 @@ waiting on somebody logging in.
 
 - **The heads-up line can be dragged and closed**, and now the test suite says
   so. Both were built releases ago and neither had ever been checked by
-  anything but a person â€” so "does it drag" was a question only playing could
+  anything but a person — so "does it drag" was a question only playing could
   answer. It is movable, dragged from anywhere on it, clamped to the screen,
   its position is remembered across sessions, and the **x** in its corner
   turns it off rather than hiding it until the next login.
@@ -2771,7 +2840,7 @@ waiting on somebody logging in.
 
 - **A build lint was reading comments.** The check that every provider
   declares the events it depends on searched the whole file for a function
-  name â€” so a comment *explaining* why something no longer calls that function
+  name — so a comment *explaining* why something no longer calls that function
   reported it as calling it. It reads code now, which is the same correction
   the CI preflight made for the same reason.
 
@@ -2780,36 +2849,36 @@ waiting on somebody logging in.
 Fourteen defects. Eleven of them were in what 0.67.0 itself added, including
 two that were quietly teaching the addon the wrong things about how you play.
 
-### Fixed â€” the addon learning from things you never saw
+### Fixed — the addon learning from things you never saw
 
 - **Hovering the type filters told the addon it had shown you sixty
   objectives.** Asking for the ranking is how the addon records what it
-  offered you â€” that count is the denominator of the ratio that moves a
+  offered you — that count is the denominator of the ratio that moves a
   type's score by up to a quarter, and the top rows get a work clock started
   on them. A tooltip added last release asked for sixty rows on every hover
   while the list behind it draws twelve. Mousing down the checkbox list
   recorded rows you have never seen as shown, and started timing them.
-- **`/cn find` did the same thing with the window closed** â€” twelve
+- **`/cn find` did the same thing with the window closed** — twelve
   objectives marked as offered and clocked, as a side effect of typing a
   search.
 - **A deadline you cannot possibly meet was scored as the most urgent thing in
   the game.** A world quest with eight minutes left, twelve minutes of flying
   away, sat at the top of the list. The addon holds both halves of that
-  arithmetic â€” the journey, and how long this kind of work takes *you*,
-  measured â€” and was using neither. `/cn why` now says "deadline (too soon to
+  arithmetic — the journey, and how long this kind of work takes *you*,
+  measured — and was using neither. `/cn why` now says "deadline (too soon to
   reach)" rather than dropping the term silently.
 
-### Fixed â€” wrong numbers on screen
+### Fixed — wrong numbers on screen
 
 - **Every completed Loremaster achievement came back as unfinished.** A
   migration last release deleted a flag that is account-wide by design and
   that nothing rewrites, so `/cn zones` put "Loremaster of Khaz Algar 120/120"
-  at the top of "worth doing next" with the reason "100% done â€” finishing is
+  at the top of "worth doing next" with the reason "100% done — finishing is
   cheaper than starting". Repaired on upgrade, and the store now rebuilds
   itself when it is missing something rather than only when it is empty.
 - **Two tooltips reported distances at double the addon's own estimate**, and
   printed "About 40 minutes away" for a rare thirty yards off whenever the
-  client had not yet answered about your position â€” the internal
+  client had not yet answered about your position — the internal
   "somewhere unknown" constant, rendered as a measurement. A journey the addon
   cannot estimate is now not described at all.
 - **"Gone in 42m left whether you do it or not."** A value-column string
@@ -2820,14 +2889,14 @@ two that were quietly teaching the addon the wrong things about how you play.
   into a confident wrong claim.
 - **Quests in a neighbouring zone could be silently dropped.** The zone was
   priced from whichever remembered quest had the lowest id, and if that one
-  had no stored coordinates the whole zone was treated as unreachable â€” up to
+  had no stored coordinates the whole zone was treated as unreachable — up to
   twenty available quests one flight point away, invisible.
 
-### Fixed â€” the interface
+### Fixed — the interface
 
 - **The currency sweep still never resumed after you closed the Currency
   tab.** Last release hooked that window's close, on an event the addon
-  discards for every addon but itself â€” so the handler could only fire at the
+  discards for every addon but itself — so the handler could only fire at the
   one moment the window is guaranteed not to exist. It was written,
   commented, and inert.
 - **The eleven tab captions, the Welcome screen and the Hud panel ignored the
@@ -2843,7 +2912,7 @@ two that were quietly teaching the addon the wrong things about how you play.
 ### Internal
 
 - **`CN.Recommend` can be asked quietly.** One ranking path, one place that
-  decides whether an ask counts as an offer â€” rather than a second function
+  decides whether an ask counts as an offer — rather than a second function
   that would drift from the first.
 - **The cache-mutation counter is reported by `/cn errors`** instead of being
   written and read by nothing, and its guard now documents what it does and
@@ -2853,7 +2922,7 @@ two that were quietly teaching the addon the wrong things about how you play.
 ## [0.67.2]
 
 Still nothing in the addon. Two releases in a row were diagnosed as build
-failures when the second one had not been built at all â€” `ci -Watch` was
+failures when the second one had not been built at all — `ci -Watch` was
 reporting an older run, in failure red, with nothing saying it was not the
 release just asked for.
 
@@ -2865,7 +2934,7 @@ release just asked for.
   does not match the version in the working tree it says so, in as many words,
   before anything else.
 - **It prints the log URL when a run fails**, rather than directing you to a
-  second command â€” which 0.67.0 proved could come back with nothing.
+  second command — which 0.67.0 proved could come back with nothing.
 - **`release` checks that GitHub actually started a run.** A push can succeed
   and nothing happen: Actions disabled, the workflow missing from the default
   branch, a trigger that no longer matches. The command reported a healthy
@@ -2881,14 +2950,14 @@ here; this is the release pipeline and the tools around it.
 ### Fixed
 
 - **`/cn ci` could report a failed run and name nothing.** Every useful line it
-  prints â€” the step list, "FAILED AT", the link to the log â€” was inside a loop
+  prints — the step list, "FAILED AT", the link to the log — was inside a loop
   over a step list that came back empty, so a failed run produced a job name,
   a blank line, and the API budget. The log URL is printed first now,
   unconditionally, before anything that depends on the shape of the response;
   an empty step list is reported as the finding it is and re-asked for once;
   and a job that failed with no step marked failed says so and names the
   likeliest cause.
-- **The release job was capped below the steps inside it** â€” 20 minutes around
+- **The release job was capped below the steps inside it** — 20 minutes around
   step budgets adding to 57. A cap like that is the real limit and the ones
   inside it are decoration: whichever step is running when the job clock
   expires is killed, nothing is marked failed, and the run reports a failure
@@ -2898,7 +2967,7 @@ here; this is the release pipeline and the tools around it.
 - **Mutation testing had been silently timing out on the runner.** The suite is
   314 mutations and each runs the whole test harness; that is 71% of its
   eight-minute budget on a fast machine, and the runner has two cores. Because
-  the step is deliberately non-blocking, nothing failed and nothing said so â€”
+  the step is deliberately non-blocking, nothing failed and nothing said so —
   the release went green with its strongest suite not run. Budgeted at fifteen.
 
 ### Internal
@@ -2909,7 +2978,7 @@ here; this is the release pipeline and the tools around it.
   `timeout-minutes` and killed the way the runner would kill it, a step marked
   `continue-on-error` fails the way the runner treats it rather than stopping
   everything, and any step that passes using more than two thirds of its
-  budget is called out â€” because this machine is faster than the runner, so
+  budget is called out — because this machine is faster than the runner, so
   "only just fits here" means "does not fit there".
 
   This is the same hole as the one that ended 0.61.0: the rehearsal passed
@@ -2920,11 +2989,11 @@ here; this is the release pipeline and the tools around it.
 ## [0.67.0]
 
 Thirteen defects and four improvements. Eight of the thirteen were in what
-0.66.0 itself added â€” including one that made a tab grow by five rows every
+0.66.0 itself added — including one that made a tab grow by five rows every
 two seconds, and one that switched off the currency sweep for the session the
 first time you opened your Currency tab.
 
-### Fixed â€” 0.66.0's own additions
+### Fixed — 0.66.0's own additions
 
 - **The Scans tab duplicated itself every two seconds.** The live rows were
   being appended onto the cached table rather than onto a copy of it, so
@@ -2934,14 +3003,14 @@ first time you opened your Currency tab.
   reports it to `/cn errors`.
 - **`/cn find` answered "nothing matches" if you had not opened the window.**
   It asked for the window rather than building one. It also only searched tabs
-  you had clicked at least once â€” panels are created on first visit â€” so the
+  you had clicked at least once — panels are created on first visit — so the
   search was blind to exactly the tabs you were least likely to have seen.
 - **Text size could be raised and never lowered.** `/cn textsize 100` reported
   success and changed nothing; every label kept whatever larger font it was
   last given until you reloaded. The Settings button cycles back round to
   100%, which is the normal way to meet this.
 - **Text size did not reach the arrow, the heads-up line, the follow frame or
-  the map pin numbers** â€” the four widgets the setting exists for â€” nor any
+  the map pin numbers** — the four widgets the setting exists for — nor any
   button or checkbox label in the window.
 - **Opening your Currency tab once switched off the currency sweep for the
   rest of the session.** The check asked whether that panel's own flag was
@@ -2957,7 +3026,7 @@ first time you opened your Currency tab.
   because standing in a city means the client names the city, not the zone
   around it.
 - **Walking through new content re-costed every remembered zone every two
-  seconds** â€” the cache key was a count of a six-hundred-row store, and that
+  seconds** — the cache key was a count of a six-hundred-row store, and that
   count moves continuously while you discover quests. It is a counter now, and
   it includes roughly where you are standing, so the cheapest-zones ordering
   is re-taken as you cross a zone instead of being fixed where you landed.
@@ -2965,27 +3034,27 @@ first time you opened your Currency tab.
   from three different sources with three different kinds of id, and the
   client's item lookup was being asked first for all of them.
 
-### Fixed â€” older
+### Fixed — older
 
-- **A new character read the main's Loremaster progress as its own** â€” "90 /
-  120" with three done â€” permanently, because nothing rewrote the shared
+- **A new character read the main's Loremaster progress as its own** — "90 /
+  120" with three done — permanently, because nothing rewrote the shared
   figure any more. The stale figures are cleared on upgrade, and Loremaster
   has been added to first-time setup, which it was missing from.
 - **An achievement at 38 of 40 could vanish from the list.** When the game
-  declines to answer about criteria â€” during a loading screen, or before the
-  achievement UI has loaded â€” it answers zero, and that was written into the
+  declines to answer about criteria — during a loading screen, or before the
+  achievement UI has loaded — it answers zero, and that was written into the
   store as real progress. The neighbouring module has guarded this for
   several releases.
 - **Typing in the filter box wiped whatever a button had just told you.** The
   cross-tab hint has its own line now.
-- **`/cn hidden` could show `RECIPE claim`** â€” the addon's internals offered
+- **`/cn hidden` could show `RECIPE claim`** — the addon's internals offered
   as the name of the thing you hid.
 
 ### New
 
 - **`/cn provenance`** lists every prerequisite the addon believes on evidence
-  rather than on somebody having read it â€” harvested from your own play,
-  contributed by other players, or imported by hand â€” with how many characters
+  rather than on somebody having read it — harvested from your own play,
+  contributed by other players, or imported by hand — with how many characters
   or contributions stand behind each. `/cn why` has always said which source
   an answer came from; this is the opposite question, and it is where checking
   them starts.
@@ -2999,7 +3068,7 @@ first time you opened your Currency tab.
 
 - **Every tooltip on every tab is now built during the test run** and must
   produce text with no `nil` in it. Tooltips are built on hover, so nothing in
-  the suite had ever run one â€” and the first draft of the work above read a
+  the suite had ever run one — and the first draft of the work above read a
   field the world-quest row does not carry.
 - **A recording that does not cover a stub rule is a failure, not a note**,
   under `CN_REQUIRE_FULL_FIXTURES`. It is deliberately a separate switch: the
@@ -3016,7 +3085,7 @@ contribution workflow produce a file that would not load; the largest of the
 features had been sitting on disk, collected and pruned, with nothing reading
 it.
 
-### Fixed â€” things that were plainly broken
+### Fixed — things that were plainly broken
 
 - **`/cn export` produced Lua that did not parse.** A sweep that replaced a
   punctuation idiom across the addon reached inside three quoted strings that
@@ -3025,7 +3094,7 @@ it.
   data file had an addon that would not load. The test now *loads* the export
   rather than looking at it.
 - **`/cn title <name>` raised an error** for any title the current character
-  did not already hold â€” which is the question the command exists to answer.
+  did not already hold — which is the question the command exists to answer.
   Titles are resolved against the game's whole list now.
 - **Every alt's Renown standing read `(nil)`** in `/cn rep`, `/cn who rep` and
   `/cn alts`. The stored English standing was correctly dropped last release
@@ -3038,20 +3107,20 @@ it.
   character-specific.** The check read a store that by construction holds only
   account-wide factions, so the sentence about progress not carrying across
   your Warband could not appear for the factions it is entirely about.
-- **`/cn raredb` counted rares as cleared after they had expired** â€” while
+- **`/cn raredb` counted rares as cleared after they had expired** — while
   `/cn rares` was correctly offering the same ones again.
 - **`/cn sells <name>` answered with the item's number**, having just looked
   that number up from the name you typed.
 - **A new alt was shown the main's exploration and Loremaster progress as its
   own.** The per-character split added two releases ago was bypassed by a flat
   field that any character rewrote merely by flying through a zone.
-- **The Scans tab froze** â€” "Quest givers on this map", whose own description
+- **The Scans tab froze** — "Quest givers on this map", whose own description
   reads "changes as you move", kept showing the count from wherever the window
   was opened, for the rest of the session.
 - **The mount journal printed Alliance and Horde untranslated**, beside text
   that was correctly in your language.
-- **Hidden rares were listed as `RARE 5487`** â€” the addon's own internals
-  offered as the name of the thing you hid â€” and hidden recipes showed a
+- **Hidden rares were listed as `RARE 5487`** — the addon's own internals
+  offered as the name of the thing you hid — and hidden recipes showed a
   number, or the previous language's name after a client language change.
 - **The first currency you picked up after logging in ran the full sweep a
   second time**, seconds after the login sweep, because entering the world
@@ -3061,7 +3130,7 @@ it.
 
 - **Quests in the zones next door.** The addon has been recording where every
   quest-start pin you ride past lives, and pruning that list, for many
-  releases â€” and nothing ever offered you one. So it could see a quest twenty
+  releases — and nothing ever offered you one. So it could see a quest twenty
   yards away and not one over the border, and would send you across the
   continent for a rare instead. The nearest three zones now contribute, priced
   by where the zone is rather than by each pin, and the reason names the zone.
@@ -3081,14 +3150,14 @@ it.
 ### Internal
 
 - **One way to strip colour codes from text.** It was written by hand in two
-  files that had already drifted â€” one stripped inline textures and the other
-  did not â€” so the sort key and the mount source line disagreed about what a
+  files that had already drifted — one stripped inline textures and the other
+  did not — so the sort key and the mount source line disagreed about what a
   string says.
 - **The currency sweep it defers is now actually collected.** The code said it
   would happen "as soon as the player closes the window"; nothing made that
   true, and it waited for the next coin you picked up.
 - **The test harness records what font a piece of text is drawn in.** It
-  swallowed that, so the window's typography was invisible to every test â€”
+  swallowed that, so the window's typography was invisible to every test —
   the seventeenth entry in this project's list of defects that a test stub
   simpler than the game made impossible to see.
 
@@ -3097,25 +3166,25 @@ it.
 Nineteen defects. Fifteen of them were the *reading* half of a change made in
 0.63.0 or 0.64.0: a name the addon correctly stopped storing, still being
 displayed from the store that no longer had it. That produced blank text on
-screen â€” a list entry reading "1. 1275" instead of "Explore Eversong Woods".
+screen — a list entry reading "1. 1275" instead of "Explore Eversong Woods".
 Two mechanical checks were added so this shape is caught by the build rather
 than by a reader.
 
-### Fixed â€” text you read
+### Fixed — text you read
 
 - **Zone exploration objectives had no name at all.** The recommendation list
   showed the achievement's number where its name belongs, on every client and
   in every language. So did the goal line, and so did "This zone" in `/cn
   exploration`.
 - **A toy you have hidden could not be named**, and a mount goal stopped saying
-  where the mount comes from â€” the sentence that makes the row actionable.
+  where the mount comes from — the sentence that makes the row actionable.
 - **A rare's goal line printed a raw map number** instead of the zone's name.
 - **Three vendor rows lost the zone they are in**, so "where do I buy this"
   answered with coordinates and no place.
 - **`/cn title <name>` raised a Lua error** rather than printing the title, and
   a title you already hold reported itself with no name beside it.
 - **`/cn titles` and the Titles breakdown told you to run a scan you had just
-  run** â€” permanently. Both branch on how many titles exist, which had become
+  run** — permanently. Both branch on how many titles exist, which had become
   zero for everyone.
 - **Renown was written in English beside standings written in yours**, and was
   stored that way, so an alt's row stayed frozen at whatever language that
@@ -3126,7 +3195,7 @@ than by a reader.
   switch characters for progress that is shared. It is a token now, and the
   sentence beside it is translated in all eleven locales.
 
-### Fixed â€” behaviour
+### Fixed — behaviour
 
 - **The currency throttle was inverted.** 0.64.0 cleared the timer *before*
   scanning rather than after, which guaranteed the second full sweep it was
@@ -3138,7 +3207,7 @@ than by a reader.
 ### Faster
 
 - **The Sources tab is cached like its two siblings.** It walked ten stores on
-  every refresh â€” twice a second while the window is open.
+  every refresh — twice a second while the window is open.
 - **A quest pin you have already seen no longer rewalks the remembered
   store.**
 
@@ -3151,7 +3220,7 @@ than by a reader.
   have a real name, and any file that reads a saved-variable store the upgrade
   ladder deletes now fails the build. The second one matters more than it
   looks: asking for a store *creates* it, so a deleted store and a leftover
-  reader do not cancel out â€” the reader silently puts it back, empty, at every
+  reader do not cancel out — the reader silently puts it back, empty, at every
   login.
 - **The last of the hand-rolled pluralizers, and the last two name stores.**
   Eight and ninth applications of one rule: persist only what the game cannot
@@ -3163,16 +3232,16 @@ Twelve defects, found by looking for one specific thing: places where an
 earlier fix landed at one call site and its siblings were missed. That search
 was added to the process last release, and it found most of this one.
 
-### Fixed â€” your progress, and whose it is
+### Fixed — your progress, and whose it is
 
 - **Zone exploration progress was shared between your characters.** How much
   of a zone you have explored was stored against the zone rather than against
-  you, and the refresh runs when you *enter* a zone â€” so an alt flying through
+  you, and the refresh runs when you *enter* a zone — so an alt flying through
   overwrote your main's progress in passing, with no scan involved. This is the
   same defect fixed for Loremaster three releases ago, in the neighbouring
   store the fix never reached.
 - **The whole Exploration feature disappeared if you changed client
-  language** â€” and so did the Loremaster zone lookup. Both matched an
+  language** — and so did the Loremaster zone lookup. Both matched an
   achievement name stored in the old language against a zone name in the new
   one. 0.62.0 fixed one half of that comparison and left the other frozen.
 - **`/cn hidden` mixed languages in one list.** Faction, title and currency
@@ -3186,7 +3255,7 @@ was added to the process last release, and it found most of this one.
 - **`/cn clock` reported currencies the game has retired**, which `/cn
   currencies` had already correctly dropped, on the same login. One staleness
   rule; two of the three readers applied it.
-- **`/cn breakdown` subtracted one population from another** â€” it counted
+- **`/cn breakdown` subtracted one population from another** — it counted
   every currency row it had ever seen and then subtracted only the live ones.
 
 ### Faster
@@ -3195,9 +3264,9 @@ was added to the process last release, and it found most of this one.
   and quest turn-ins were moving the counter that the Collections tab, the
   Warband roster and the whole Remaining report use to decide whether anything
   has changed. Since a reputation tick fires many times a second, every one of
-  those caches rebuilt on every window refresh â€” the caches were doing nothing
+  those caches rebuilt on every window refresh — the caches were doing nothing
   in exactly the situation they were written for.
-- **The currency sweep no longer runs every ten seconds** â€” nor while your own
+- **The currency sweep no longer runs every ten seconds** — nor while your own
   currency window is open. It briefly expands and re-collapses your currency
   headers to see rows the game hides, and a player with that window open
   watched their groups pop open and shut all evening. It waits until you close
@@ -3210,7 +3279,7 @@ was added to the process last release, and it found most of this one.
 
 - **Why a quest is blocked is a token now, not a sentence.** The reason was
   recovered by pattern-matching English display text that had already been
-  half-translated â€” one more translation away from telling you the wrong alt
+  half-translated — one more translation away from telling you the wrong alt
   could do a quest.
 - **One pluralizer.** The shared one had a single caller while twenty-two
   places wrote the same expression by hand and one module kept a third private
@@ -3220,15 +3289,15 @@ was added to the process last release, and it found most of this one.
 ## [0.63.0]
 
 Fourteen defects. Half of them were places an earlier release fixed one caller
-and left the others â€” so this one ends with a rule about that, and a backlog
+and left the others — so this one ends with a rule about that, and a backlog
 rewritten to match what is actually still open.
 
-### Fixed â€” numbers and text the player reads
+### Fixed — numbers and text the player reads
 
 - **A capped currency printed the two numbers its cap was *not* measured
   against.** 0.62.0 taught the addon that some caps apply to what you have
   earned rather than what you hold, and then went on displaying the balance:
-  "At cap â€” spend these: 100 / 2500". The row now shows what the cap was
+  "At cap — spend these: 100 / 2500". The row now shows what the cap was
   measured against, says so, and carries the balance beside it.
 - **A currency you can *move* between characters was treated as one every
   character shares.** So a balance belonging to exactly one character was
@@ -3243,16 +3312,16 @@ rewritten to match what is actually still open.
 - **Weekly knowledge was still ordered by an English word.** 0.61.0 demoted
   that from deciding whether a row appears to deciding where it sorts, which is
   the same bug with a smaller blast radius. It is ordered by how much of the
-  week's cap is unclaimed now â€” true in every language.
+  week's cap is unclaimed now — true in every language.
 - **The Refresh button on the Remaining tab still could not recount your
   quests.** The parameter that makes it recount was added a release ago and
   given no caller.
 - **"This session" was never the client's own count.** The figure meant to
-  include quests completed by any means â€” including ones the addon saw no event
-  for â€” could not be computed, because the baseline is taken at login and the
+  include quests completed by any means — including ones the addon saw no event
+  for — could not be computed, because the baseline is taken at login and the
   client cannot answer that early. It is taken from the first real answer now.
 - **An ordering the addon inferred from watching you play could never be
-  corrected.** Written once and frozen, even after later play contradicted it â€”
+  corrected.** Written once and frozen, even after later play contradicted it —
   and that is the copy the curated data file is built from.
 - **Vendor zone names, and mount and toy names, were frozen at whatever
   language last scanned.** Around 1,900 rows of localized text off disk; a
@@ -3266,7 +3335,7 @@ rewritten to match what is actually still open.
   30,000-entry walk back on the next turn-in. Both edges of that count are
   maintained one quest at a time now.
 - **The arrow stopped allocating a table ten times a second** whenever your
-  best map differs from your target's â€” a city, an inn, a cave, most of the
+  best map differs from your target's — a city, an inn, a cave, most of the
   time it is on screen.
 - **Debug text is no longer built when debug is off.** It was assembled on
   every cache invalidation, which happens tens of times a second while questing,
@@ -3276,27 +3345,27 @@ rewritten to match what is actually still open.
 
 - **A deadline is charged once.** World quests and world events set two
   different urgency terms from the same expiry, scored through two curves tuned
-  separately â€” and `/cn urgency`, which the addon offers as its explanation of
+  separately — and `/cn urgency`, which the addon offers as its explanation of
   the ordering, plots only one of them. Now there is one curve, and it is the
   one the chart shows.
 
 ## [0.62.0]
 
 An audit release. Fifteen defects, several of which had been quietly wrong for
-many versions â€” including two whole features that could never once have worked,
+many versions — including two whole features that could never once have worked,
 and three places where the addon decided something by reading an English word.
 
-### Fixed â€” features that were silently dead
+### Fixed — features that were silently dead
 
 - **Exploration never found the zone you were standing in.** The lookup
-  compared an achievement name â€” "Explore Eversong Woods" â€” against a zone
+  compared an achievement name — "Explore Eversong Woods" — against a zone
   name, "Eversong Woods", and those are never equal. So the exploration
   recommendations, the per-zone block in `/cn exploration`, and the learned map
   id that resolves the two Shadowmoon Valleys were all dead on every client
   since 0.59.0. The test suite could not see it because the fixture invented a
   matching row whenever the lookup failed.
 - **Recipe items were recognised only in English.** "Recipe: Flask of Alchemy"
-  is "Rezept: â€¦" on a German client, so the tooltip line that says whether you
+  is "Rezept: …" on a German client, so the tooltip line that says whether you
   or one of your characters already knows a recipe never appeared for anyone
   not playing in English. The prefix is now found by structure rather than by
   the English word.
@@ -3305,16 +3374,16 @@ and three places where the addon decided something by reading an English word.
   game supplies a number for this, and the addon had been storing it, unused,
   the whole time.
 
-### Fixed â€” numbers that were wrong
+### Fixed — numbers that were wrong
 
 - **`/cn petscan` and `/cn pets` disagreed about the same journal.** The game
   lists a pet you own once per copy you hold, so every duplicate was counted as
   another species.
 - **"This session" could report your entire questing career.** The client
-  returns an empty list â€” not nothing â€” before it has finished loading your
+  returns an empty list — not nothing — before it has finished loading your
   quests, and that empty list was taken as a real baseline of zero.
 - **A currency capped on what you have *earned* said you were not capped once
-  you spent the balance** â€” so the row that exists to warn you about wasted
+  you spent the balance** — so the row that exists to warn you about wasted
   earning stayed silent about exactly that.
 - **"Within two criteria of finishing" was counted three different ways**, one
   of which included achievements that were already finished.
@@ -3327,13 +3396,13 @@ and three places where the addon decided something by reading an English word.
 ### Faster
 
 - **21 ms off every five seconds while questing.** Every criteria update swept
-  every tracked achievement, and the client is asked once *per criterion* â€”
+  every tracked achievement, and the client is asked once *per criterion* —
   several thousand calls, for rows whose movement changes nothing you can see.
   It now polls the handful near the boundary plus anything you have pinned.
 
 ### Smaller on disk, and fresher
 
-- **Mount source text is no longer stored** â€” around nine hundred rows of
+- **Mount source text is no longer stored** — around nine hundred rows of
   localized prose the client returns instantly. A stale zone name on every rare
   went with it.
 - **Mounts, pets and toys now refresh at login.** They relied entirely on
@@ -3354,21 +3423,21 @@ at the performance-budget step with "command not found".
 ### Fixed
 
 - **The release could not complete.** 0.61.0 moved the performance budgets
-  onto Lua 5.1 â€” the interpreter the game actually runs, and about half the
+  onto Lua 5.1 — the interpreter the game actually runs, and about half the
   speed of the 5.4 they had always been measured on. The step called `lua5.1`
   without checking it was there. The build machine did not have it, so the
   step exited 127 and everything after it, including the upload, never ran.
   The step ten lines above it had always checked; this one was written without
   looking at it.
 - **The step now checks for Lua 5.1 before using it**, the way the harness
-  step beside it always has. It runs on 5.1 wherever 5.1 exists â€” including
+  step beside it always has. It runs on 5.1 wherever 5.1 exists — including
   the local release rehearsal, where every budget in this release was measured
-  â€” and says plainly when it had to fall back rather than failing the build.
+  — and says plainly when it had to fall back rather than failing the build.
   Installing 5.1 on the build machine was tried and rejected: this project
   does not take its toolchain from the runner's package manager, because a
   package lock once hung a release for no reason anybody could act on.
 - **The release rehearsal now catches this whole class before a tag is
-  pushed.** It runs the real workflow's steps locally, and it passed 0.61.0 â€”
+  pushed.** It runs the real workflow's steps locally, and it passed 0.61.0 —
   because this machine happens to have Lua 5.1 and the build machine does not.
   A local success is not evidence about the runner. Every tool the workflow
   invokes must now either be installed by the workflow itself or be checked
@@ -3382,7 +3451,7 @@ Numbers, and what they cost. Two themes ran through this release: figures that
 were wrong in ways nobody could see from inside the addon, and work the addon
 was doing repeatedly for answers that had not changed.
 
-### Fixed â€” figures that were wrong
+### Fixed — figures that were wrong
 
 - **A percentage never reads as finished until it is.** Four places rounded,
   so 999 of 1,000 printed "100%" on a row that was still outstanding, and
@@ -3392,7 +3461,7 @@ was doing repeatedly for answers that had not changed.
   one place.
 - **An achievement 9 of 31 done reported 9 of 25.** The criteria reader capped
   its own loop at twenty-five and handed back the number of rows it had
-  collected as the total â€” so every meta achievement in the game, which is
+  collected as the total — so every meta achievement in the game, which is
   precisely what a chase list is for, was measured against a window instead of
   against itself. The list is still capped, and says how many rows it did not
   show; the count is the achievement's.
@@ -3403,7 +3472,7 @@ was doing repeatedly for answers that had not changed.
 - **Weekly profession knowledge found nothing on a non-English client.** It
   was gated on the English word "knowledge" appearing in the currency's
   localized name. The gate is now the fact the client vouches for in every
-  locale â€” a weekly cap with room left under it.
+  locale — a weekly cap with room left under it.
 - **A nearly-complete transmog set could vanish from the list.** Set ids and
   appearance category ids are both small integers from unrelated Blizzard
   tables, and both were filed under the same type, so the aggregate dedup
@@ -3414,7 +3483,7 @@ was doing repeatedly for answers that had not changed.
   alone. With one difficulty still open, the answer to "can I go and kill it"
   is now yes.
 - **Your daily count no longer resets when you zone.** One silent moment from
-  the client â€” a loading screen â€” moved today's progress into yesterday and
+  the client — a loading screen — moved today's progress into yesterday and
   restarted today at one.
 - **Loremaster progress is attributed to the character that earned it.** The
   store had no character dimension, in a store whose purpose is showing what
@@ -3424,7 +3493,7 @@ was doing repeatedly for answers that had not changed.
   substring and the tie-break was table order, so the Journey tab could show a
   different achievement for the same zone on different logins.
 - **A map pin you dragged is yours again.** The guard that stops
-  `/cn clearway` deleting a hand-placed pin compared only the map â€” and
+  `/cn clearway` deleting a hand-placed pin compared only the map — and
   dragging a pin leaves it on the same map, so the one case the guard existed
   for was the one case it could not see.
 - **Three self-tests could not fail.** The facing check reported "confirmed"
@@ -3437,7 +3506,7 @@ was doing repeatedly for answers that had not changed.
 
 - **15.3 ms off the login frame.** The data-broker feed rebuilt every
   candidate in the game from a login hook that runs before anything has been
-  scanned â€” for a result it then almost always discarded.
+  scanned — for a result it then almost always discarded.
 - **13.7 ms off the Remaining tab.** It walked all thirty thousand discovered
   quests, asking the client about each, for a number that changes by one when
   you hand a quest in. It is counted once and maintained.
@@ -3452,7 +3521,7 @@ was doing repeatedly for answers that had not changed.
   allocated on every rebuild.
 - **The performance gate now runs on the interpreter the game runs.** Every
   budget in this project was enforced under Lua 5.4, which is about twice as
-  fast as the 5.1 the client uses â€” so a path at 60% of its ceiling was at
+  fast as the 5.1 the client uses — so a path at 60% of its ceiling was at
   120% of it in the game.
 
 ### Smaller on disk
@@ -3467,7 +3536,7 @@ was doing repeatedly for answers that had not changed.
 ### Changed
 
 - **Chat answers share one shape.** A headline, the rows, the value, a note
-  when the list was cut short â€” written once instead of in every command.
+  when the list was cut short — written once instead of in every command.
 - **"3 piece(s) left" is now "3 pieces left".** Counts read the way a person
   writes them, and a class restriction reads as "class only: Warrior and
   Paladin" rather than as the client's uppercase tokens.
@@ -3483,26 +3552,26 @@ was doing repeatedly for answers that had not changed.
 A player reported that a quest they had handed in stayed on the list. It did,
 and the reason turned out to be a whole class of defect: something that can go
 out of date, with nothing able to tell it. This release is that class, found
-and closed â€” thirteen instances, plus the three things reported from play.
+and closed — thirteen instances, plus the three things reported from play.
 
-### Fixed â€” reported from play
+### Fixed — reported from play
 
 - **A quest you handed in stayed on the list and on the route.** The provider
-  that reports nearly-finished quest objectives â€” "Kill Ten Rats: 1 more" â€”
+  that reports nearly-finished quest objectives — "Kill Ten Rats: 1 more" —
   reads the quest log and declared only bag events, and a provider that is not
   named by an event is not invalidated at all. So the row survived the turn-in
   until a bag update or a loading screen happened along. The build now fails
   if a provider reads a system whose events it does not declare.
 - **The heads-up line could not be dragged.** It was the only frame in the
-  addon at the lowest strata â€” the arrow and the follow frame, which sit over
-  the world in exactly the same way, are both at the ordinary one â€” so
+  addon at the lowest strata — the arrow and the follow frame, which sit over
+  the world in exactly the same way, are both at the ordinary one — so
   anything else on screen took the mouse first and all three of the actions
   its own tooltip promised did nothing.
 - **The heads-up line has a way out on itself.** An **x** in its corner, shown
-  when the mouse is over the line, that turns it off rather than hiding it â€”
+  when the mouse is over the line, that turns it off rather than hiding it —
   hiding would bring it back on the next refresh. `/cn hud` brings it back.
 
-### Fixed â€” the same class, found by audit
+### Fixed — the same class, found by audit
 
 - **A goal you finished never left the list**, and follow mode stuck on it. A
   goal can be a quest, a mount, a pet, a toy, an achievement or a reputation,
@@ -3516,7 +3585,7 @@ and closed â€” thirteen instances, plus the three things reported from play
   any other. No provider declares `PLAYER_LEVEL_UP`, so levelling up reached
   none of them. Four call sites passing a word that is not an event name
   reached none of them either.
-- **The window redrew for six events and missed everything else** â€” a second
+- **The window redrew for six events and missed everything else** — a second
   hand-written list, of the kind this project already records as fixed once.
   In a city, where none of the six fire, looting a toy left "collect this toy"
   on screen, and **dying did not show the corpse run**, which is the one thing
@@ -3524,11 +3593,11 @@ and closed â€” thirteen instances, plus the three things reported from play
   providers themselves declare.
 - **A deferral that ran out never brought the thing back.** Right-click the
   heads-up line to put a mount off for an hour, and an hour later it stayed
-  gone, while `/cn hidden` reported the deferral as expired â€” the addon
+  gone, while `/cn hidden` reported the deferral as expired — the addon
   contradicting itself about its own state.
 - **A currency retired at the end of a season was recommended for ever.** The
   store only ever grew, and nothing checked whether the client still lists a
-  currency â€” so "at cap, further earning is wasted" kept appearing, with a
+  currency — so "at cap, further earning is wasted" kept appearing, with a
   fresh urgency bonus every weekly reset, for something that no longer exists.
 - **A crafting order still said it expired in six hours, six hours later.**
   The one deadline-carrying provider that did not expire on its own.
@@ -3543,16 +3612,16 @@ and closed â€” thirteen instances, plus the three things reported from play
   the suggestions honoured it and the scoring did not.
 - **A party member finishing a quest never stopped counting.** The answer
   comes from their quest log, the client fires no event about it, and the
-  invalidation was subscribed to your own quest events â€” which never fire for
+  invalidation was subscribed to your own quest events — which never fire for
   anybody else.
 - **A zone that refused flight before your Pathfinder unlock refused it for
   ever.** Every route to that zone was costed at ground speed, roughly three
-  and a half times too slow, correctable only by flying back into the zone â€”
+  and a half times too slow, correctable only by flying back into the zone —
   the one thing the wrong estimate discourages.
 - **A toy kept the travel cost it had in the zone you left**, because it was
   the only located provider that did not watch for a zone change.
 - **Bumping the decorator counter reached nothing.** Three of its five callers
-  moved a number that is only read while a provider is already being rebuilt â€”
+  moved a number that is only read while a provider is already being rebuilt —
   including the registry itself, whose own comment says a decorator
   registering late must reach the rows that already exist.
 - **Appearances were the one scanned collection with no refresh at login**, so
@@ -3562,10 +3631,10 @@ and closed â€” thirteen instances, plus the three things reported from play
 ### Changed
 
 - A tooltip no longer silently deletes a hover handler that was already there
-  â€” a trap invisible at the call site and dependent on the order two unrelated
+  — a trap invisible at the call site and dependent on the order two unrelated
   lines happen to be written in.
-- Two exploration achievements whose zones share a name â€” retail has two
-  Nagrands and two Shadowmoon Valleys â€” no longer overwrite each other's
+- Two exploration achievements whose zones share a name — retail has two
+  Nagrands and two Shadowmoon Valleys — no longer overwrite each other's
   progress. The record is keyed on the map now, which cannot be duplicated.
 - A client that will not answer no longer overwrites what was scanned: a
   refusal reads as zero, and zero is not a measurement.
@@ -3583,7 +3652,7 @@ and closed â€” thirteen instances, plus the three things reported from play
   in, a mount being collected, a client that will not say where you are, a
   frame's strata and movability, and where a region was actually anchored.
   Six more entries in the running list of defects hidden by a stub more
-  forgiving than the client â€” including the one behind the report that opened
+  forgiving than the client — including the one behind the report that opened
   this release.
 - Thirty-one mutations added; two hundred and twenty-six now run and all are
   killed.
@@ -3605,34 +3674,34 @@ window surfaces held to the rules the project already states about them.
 - **Glancing at the next zone over took the batch bonus off the zone you were
   standing in.** Batching was written onto the objective tables themselves,
   which are shared, so the router had to clear it everywhere before stamping
-  this map's â€” and the map pins re-route on every world-map pan. The bonus is
+  this map's — and the map pins re-route on every world-map pan. The bonus is
   worth up to three points, comparable to the entire range of an objective's
   own value, and the route cache meant it could not come back: re-routing your
   own zone returned a cached route whose hubs were still drawn as a group of
   four while nothing in the ranking knew about them. Batching now belongs to
   the router and describes exactly one map.
 - **Rares and treasures were priced by a formula nothing else used.** Straight
-  line, in map units, times ten â€” which asserts that a map unit is the same
+  line, in map units, times ten — which asserts that a map unit is the same
   number of yards north-south as east-west (the defect behind the arrow bug of
   0.40.0, in a different file), that every zone is about 2,100 yards across,
   and that you are on foot. They go through the travel model now, like quests,
   vendors and everything else with a location. A rare the client will not place
   was also priced at zero, which the addon reads as "you are standing on it".
 - **A quest with no location was cheaper than one you could see.** The quest
-  provider carried its own price for "no idea where this is" â€” 5, against the
+  provider carried its own price for "no idea where this is" — 5, against the
   8 the rest of the addon uses. And for a second or two after every loading
   screen, when the client will not say where you are, every located quest in
   your log was scored as though you were standing on top of it.
 - **A world event's deadline could be half an hour stale.** The countdown was
   computed when the calendar was read and the list is held for thirty minutes,
   so the addon printed "ends in 40m" about an event that finished ten minutes
-  ago â€” and the urgency weighting, whose steep ramp lives entirely inside the
+  ago — and the urgency weighting, whose steep ramp lives entirely inside the
   last two hours, was fed that figure exactly where it matters most.
 - **A world event was filed under its translated name**, so ignoring one was
   lost the day you changed client language, and two events sharing a title on
   one day collapsed into a single row.
 - **Pruning the harvest store left quests carrying an unlock bonus** derived
-  from records that no longer existed â€” the second-heaviest term in the
+  from records that no longer existed — the second-heaviest term in the
   ranking, and a `/cn why` sentence describing rows that had been deleted.
 - **`/cn plan 12.5` errored on one interpreter and lied on the other.** The
   same class of defect as the two-argument `math.atan` bug of 0.43.1, with the
@@ -3640,14 +3709,14 @@ window surfaces held to the rules the project already states about them.
   ever passed a fraction.
 - **The heads-up line named one thing and acted on another.** Its click and
   right-click read a value only the window, `/cn next` and the minimap ever
-  set â€” so if you turned the line on and never opened the window, its tooltip
+  set — so if you turned the line on and never opened the window, its tooltip
   promised two actions and both did nothing, silently.
 - **Two Settings controls were drawn on top of two others**, including the
   text-size button sitting on the "announce rares" checkbox and taking its
   clicks. The same defect this file recorded as fixed for another pair four
   releases ago, reintroduced by inserting two controls above the anchor.
 - **A search that matched nothing told you to run a scan.** On the Collections
-  tab a typo produced "Nothing scanned yet. Press Scan everything." â€” which
+  tab a typo produced "Nothing scanned yet. Press Scan everything." — which
   freezes the client for several seconds and leaves the list just as empty.
 - **"Clear waypoints" said nothing and left the map pins.** The button
   discarded the answer to "did that work?", which the command form has always
@@ -3659,7 +3728,7 @@ window surfaces held to the rules the project already states about them.
 
 - **Nothing is re-decorated on a reputation tick.** Two handlers bumped the
   one counter that defeats the addon's unchanged-provider shortcut, and
-  `UPDATE_FACTION` fires many times a second while you are questing â€” so the
+  `UPDATE_FACTION` fires many times a second while you are questing — so the
   shortcut was permanently off exactly when it was most needed. The first
   event of a burst is still answered immediately; the rest collapse into one.
 - **Learning that is switched off now costs nothing.** The preference adjuster
@@ -3671,14 +3740,14 @@ window surfaces held to the rules the project already states about them.
   bound is now provably sound rather than empirically safe.
 - **The hearthstone is costed, once you have used one.** The client reports a
   bind point as a localized inn name and the addon has no way to turn that into
-  a map â€” so the one teleport every player owns was listed and never priced.
+  a map — so the one teleport every player owns was listed and never priced.
   It now notices where you land after a hearth and remembers it. Until that
   happens the row says so rather than staying silently uncosted.
 - **The Scans tab says what its two odd rows mean.** Currencies and
-  professions report a different shape from the other six and came out blank â€”
+  professions report a different shape from the other six and came out blank —
   on the tab whose header is "where every number comes from".
 - **Every row that does something carries a marker**, not two steps of
-  brightness â€” which is this addon's first rule, broken in the widget every
+  brightness — which is this addon's first rule, broken in the widget every
   tab is built out of, and defeated entirely wherever a tab colours its whole
   label.
 - **The Next tab's three buttons go dead when they cannot act.** On a fresh
@@ -3686,15 +3755,15 @@ window surfaces held to the rules the project already states about them.
   live-looking buttons, and in the type-filter mode they acted on something
   off screen.
 - **A checkbox's label is part of its hit area.** Twelve settings carried
-  their only explanation on a 24-pixel square, so hovering the words â€” the
-  obvious target â€” showed nothing.
+  their only explanation on a 24-pixel square, so hovering the words — the
+  obvious target — showed nothing.
 - **`/cn setup` says what each of its eleven numbers counted.** Three of them
   count something other than the label: "Appearances: 17" was slot categories,
   beside "Mounts: 1104". Its block also read bottom-up, with the headline
   after the detail.
 - **Eighty-two answers stopped repeating the addon's name once per row**, and
   the build check that was meant to catch that now sees the spelling the
-  codebase actually uses â€” it was matching `CN.Print(` while thirty files
+  codebase actually uses — it was matching `CN.Print(` while thirty files
   alias it. `/cn help flat` said "Completion Navigator:" a hundred and
   twenty-six times.
 - **The em dash got its spaces back** at thirteen places where a mechanical
@@ -3706,7 +3775,7 @@ window surfaces held to the rules the project already states about them.
   a differently-worded row; the Zone tab now says the client has not placed you
   yet rather than offering a button that cannot help.
 - **Answering the welcome screen no longer closes it**, which used to take the
-  scan button â€” the one thing on it that matters â€” with it.
+  scan button — the one thing on it that matters — with it.
 - **The Warband column says "titles" rather than "tit"**, matching the two
   places on the same tab that spell it out.
 - **A discovered quest is one fact rather than three fields**, none of which
@@ -3724,7 +3793,7 @@ window surfaces held to the rules the project already states about them.
   reporting its width, a client that will not say where the player is, a
   calendar event with a real end time, and a hearthstone bind location. Five
   more entries in the running list of defects hidden by a stub more forgiving
-  than the client â€” including the one that made the Next tab's main branch
+  than the client — including the one that made the Next tab's main branch
   unreachable offline for eleven releases.
 - Thirty-five mutations added; a hundred and ninety-five now run and all are
   killed. One was removed with a written argument for why it is not a defect.
@@ -3840,8 +3909,8 @@ changes what the addon recommends.
 
 ### Fixed
 
-- **The shape that kept breaking is gone.** Every reason â€” the provider's own,
-  a decorator's, another provider's, an adjuster's â€” was appended to one array
+- **The shape that kept breaking is gone.** Every reason — the provider's own,
+  a decorator's, another provider's, an adjuster's — was appended to one array
   on the objective, and each of four writers with four different lifetimes had
   to know where its own entries began and ended in order to take them back.
   That produced, in three consecutive releases: sentences repeated once per
@@ -3854,29 +3923,29 @@ changes what the addon recommends.
 - **The most recent symptom, which 0.56.0 shipped:** the aggregate's rollback
   deleted adjuster sentences and left the key that says "I already said this",
   so `/cn why` lost the group-shared line, the "you are dead" line and the
-  instance line after one rebuild â€” while the multipliers they described kept
+  instance line after one rebuild — while the multipliers they described kept
   applying.
 - **`/cn goal` did nothing to a quest already in your log, and `/cn ungoal`
   left its weighting behind.** Pinning changes the weight of a row without
   changing the row, so a provider that had not rebuilt took the
   unchanged-provider shortcut and the goals decorator never ran. Both
-  persisted until that provider's list happened to change â€” which, standing at
+  persisted until that provider's list happened to change — which, standing at
   a vendor managing your goal list, is never.
 - **A provider's row is never written into by the aggregate.** Two providers
   that know the same objective would raise the winner's value in place, with
   no way back: unpin a goal and the quest kept the pinned-era value for the
   session. Worse, the raised value then differed from the fresh one on every
   pass, so that provider could never take the unchanged-provider shortcut
-  again â€” one shipped provider was measured rebuilding on 31 of 31 passes
+  again — one shipped provider was measured rebuilding on 31 of 31 passes
   while the player stood still.
 - **The Warband bank forgot every tab but one after each reload.** The
   per-container record 0.56.0 added lived in memory only, so the first time
   you opened a bank in a new session it threw away everything on disk except
-  the tab the client happened to be describing â€” and reported the remains as
+  the tab the client happened to be describing — and reported the remains as
   freshly scanned. The record is per container on disk now, and "seen Nh ago"
   is the age of the stalest part of it rather than of the newest.
 - **Data the addon refused to destroy stopped being mentioned one login
-  later.** The refusal was recorded, the data was set aside â€” and the next
+  later.** The refusal was recorded, the data was set aside — and the next
   login found the empty space where it had been, succeeded, and cleared the
   record. `/cn rescued` shows what is there and discards it when you say so;
   until then `/cn navdiag` and `/cn selftest` both keep saying it exists.
@@ -3887,7 +3956,7 @@ changes what the addon recommends.
   objective with no coordinates was charged 3 for the journey; the far side of
   your own zone costs about 3.3. Measured on a real collection: twenty of the
   top thirty recommendations had no location at all. Two states are now
-  distinguished â€” a currency or a reputation is not *anywhere*, so there is no
+  distinguished — a currency or a reputation is not *anywhere*, so there is no
   journey to charge for, while a quest whose coordinates have not resolved is
   somewhere the addon cannot name and is charged the pessimistic figure, the
   same way an uncostable journey already was.
@@ -3899,17 +3968,17 @@ quest log, 160 located objectives in one zone, a 59-node flight network.
 
 - **Routing a zone re-ranked the entire addon, every time, whether anything
   had moved or not.** The Zone tab refreshes every two seconds, the map does
-  it on every open, and follow mode does it every three â€” so the ranked list
+  it on every open, and follow mode does it every three — so the ranked list
   had a hit rate of **zero** for as long as any of those was open. Thirty
   ticks produced thirty full re-ranks, 4,590 scorings and no hub changes.
   1.34ms per tick, returned.
 - **The ranked sort built two strings per comparison**, and ties are the
-  common case rather than the edge case â€” 134 of 153 candidates share a score
+  common case rather than the edge case — 134 of 153 candidates share a score
   with an earlier one. 943 comparisons per sort, 1,886 strings: 0.35ms and
   4.1KB per re-rank, down to 0.12ms.
 - **One bag update cost 1,022 client calls**, 144 of them exact duplicates:
   the scan asked whether each slot starts a quest and threw the answer away,
-  then asked again. What an item *is* â€” a mount, a pet, a toy â€” is a property
+  then asked again. What an item *is* — a mount, a pet, a toy — is a property
   of the item and was re-asked per slot, so a 40-slot stack of one reagent
   asked forty times.
 - **The route optimiser** now works from flat coordinate arrays with
@@ -3920,7 +3989,7 @@ quest log, 160 located objectives in one zone, a 59-node flight network.
   allocating 8.3KB per call, and the costing cache stopped allocating a
   closure before its own lookup.
 - **The client is asked where you are once a frame**, not twenty-three times
-  per rebuild â€” each of which allocated a vector in the client. The *map* is
+  per rebuild — each of which allocated a vector in the client. The *map* is
   still asked every time, because walking into a building changes it without
   you moving.
 - **The Remaining tab recounted three thousand achievement rows and eighteen
@@ -3951,7 +4020,7 @@ correct, and are named as such.
 - **Work your group shares ranks higher.** The addon has known you are in a
   group since 0.44.0 and used it for exactly one thing: pushing solo detours
   down while you are in a dungeon. Four people standing in a zone and one of
-  the six quests on the list is one all four are carrying â€” that one is worth
+  the six quests on the list is one all four are carrying — that one is worth
   four times the work, every player already knows it, and the addon had the
   information and said nothing. It reads your own client about people already
   in your group, so nothing is sent, no other machine has to be running this
@@ -3962,19 +4031,19 @@ correct, and are named as such.
   are different claims: one is reachable by this character, the other by every
   character on the account, and reachability is the addon's whole subject.
 - **Every empty tab says what would fill it.** A tab with nothing to show drew
-  literally nothing â€” a one-line header above 380 pixels of void, which reads
+  literally nothing — a one-line header above 380 pixels of void, which reads
   as broken rather than as empty. Each one now names the step that fills it.
 - **Sixteen more buttons have tooltips**, including "Re-route", "Refresh" and
-  "Next step" â€” the three whose labels say least about what they do.
+  "Next step" — the three whose labels say least about what they do.
 
 ### Fixed
 
 - **A pinned goal's weighting compounded on every rebuild, without bound.**
-  The goals decorator read its own field and added eight to it â€” harmless
+  The goals decorator read its own field and added eight to it — harmless
   while every rebuild produced fresh objects, and not harmless since 0.55.0
   started reusing them. After twenty quest turn-ins a pinned goal outweighed
   everything else on the list by thirty to one, `/cn next` returned it and
-  nothing could displace it â€” including something about to despawn â€” and
+  nothing could displace it — including something about to despawn — and
   `/cn breakdown` showed the inflated figure as though it were deliberate.
   Only a reload cleared it. Unpinning now gives the weight back too, which it
   never did.
@@ -3993,7 +4062,7 @@ correct, and are named as such.
   span over exactly 1200 as implausible. The window in which a far-away
   objective could produce anything but the floor was arithmetically empty, so
   every cross-zone completion stored 0.05s, the median settled at 0.05s, and
-  `/cn plan` reported a zone as four minutes of work â€” confidently, because
+  `/cn plan` reported a zone as four minutes of work — confidently, because
   0.05 is not nil. An estimate the model will not stand behind is no longer
   subtracted at all, and the floor is gated on the measured span rather than
   on the estimate.
@@ -4006,7 +4075,7 @@ correct, and are named as such.
   about the same quest, at the same time.
 - **The journey estimate was frozen at the first sighting.** It was stamped
   once, from wherever the addon thought you were when the objective first
-  appeared on the list, and never revised â€” so an objective you flew to and
+  appeared on the list, and never revised — so an objective you flew to and
   finished was measured against a cost from the continent you left, and
   discarded. It is re-costed as you close on it now; the clock is not, because
   that is the measurement.
@@ -4020,14 +4089,14 @@ correct, and are named as such.
   shortcut skips, which is the normal case.
 - **The Warband bank ended up holding whichever tab you looked at last.** The
   client does not describe a bank tab until it has been switched to, and the
-  scan rewrote the whole store from what it could see â€” so moving one item at
+  scan rewrote the whole store from what it could see — so moving one item at
   the bank rewrote both banks from whatever happened to be visible.
 - **The shared-quest count asked the client once per candidate per ranking
   pass.** Measured at 8,151 client calls and 7.2ms for one pass in a
-  forty-person raid, against a 0.4ms budget â€” the cache was keyed on the very
+  forty-person raid, against a 0.4ms budget — the cache was keyed on the very
   thing that triggers a re-rank, so it was cleared exactly when it would have
   been used.
-- **A quest's unlock count froze for the session** â€” on the second-heaviest
+- **A quest's unlock count froze for the session** — on the second-heaviest
   term in the ranking, with `/cn why` stating a number the addon knew was
   wrong. Same cause: rows are reused now, and the decorator's "already set,
   leave it" guard made the first answer permanent.
@@ -4035,17 +4104,17 @@ correct, and are named as such.
   rebuild.** The boundary between "what the provider said" and "what the addon
   added" was recorded blindly, so it crept upward every pass.
 - **`/cn keepfilter off` did not clear the filter it was turning off.** The
-  command looked the window up by the wrong name, so the branch never ran â€” it
+  command looked the window up by the wrong name, so the branch never ran — it
   printed "a filter that persists invisibly is how a list looks empty when it
   is not" while leaving exactly that filter in memory. The checkbox in the
   window always worked.
 - **`/cn help <word>` did not search aliases.** The worked example in the
-  code's own comment â€” half-remembering "the one about lockouts" â€” was the
+  code's own comment — half-remembering "the one about lockouts" — was the
   exact query that returned nothing, because `lockouts` is an alias. Forty-nine
   aliases were invisible to the search.
 - **A deferred objective could not be individually restored.** `/cn hidden`
   printed the time left and not the id, and `/cn unhide` matches on the id.
-- **A corrupt character table was silently replaced with an empty one** â€” every
+- **A corrupt character table was silently replaced with an empty one** — every
   character profile destroyed, version advanced, clean bill of health reported.
 - **The harvest sorted its entire store on every captured quest** once at the
   ceiling, inside a loop over your whole quest log at login.
@@ -4059,7 +4128,7 @@ correct, and are named as such.
 
 - **The addon's internal vocabulary stopped reaching you.** `State:
   REQUIRES_OTHER_CHARACTER` now reads "another character has to do this". The
-  Zone tab's header said "3 collectible, 2 exploration, 7 quest" â€” the type
+  Zone tab's header said "3 collectible, 2 exploration, 7 quest" — the type
   enum, lowercased, with the wrong plural. "No eligibility checker registered
   for CURRENCY" named a registry you have never heard of. "The Mounts module
   is not loaded" named a file.
@@ -4068,7 +4137,7 @@ correct, and are named as such.
   different settings in the same session.
 - **The first-run screen describes the focuses the same way every other
   surface does.** It carried its own four descriptions, all of which had
-  drifted â€” and one was wrong: it called Levelling "quests first, collections
+  drifted — and one was wrong: it called Levelling "quests first, collections
   quiet" when Levelling hides seventeen of the nineteen types. Quiet and gone
   are not the same promise.
 - **It also names the focus you picked**, rather than the internal key: the
@@ -6486,7 +6555,7 @@ Chase something.
 
 ### Added
 
-- **`/cn chase` â€” what actually stands between you and the thing you want.**
+- **`/cn chase` — what actually stands between you and the thing you want.**
   Pinning a goal has always re-weighted the list. It never said what the
   *path* was: which steps remain, how many are already behind you, or which
   one to go and do now. A goal was a preference, not a plan.
@@ -7207,7 +7276,7 @@ below. Numbers are from that benchmark.
   knows a recipe and which of your characters does, and which recorded
   vendor sells the item and where they stand. Unit tooltips identify a
   merchant you have already shopped at.
-  Nothing is added to items the addon knows nothing about â€” an appearance
+  Nothing is added to items the addon knows nothing about — an appearance
   line only appears where the item genuinely has an appearance source, so
   the addon stays off every stack of ore in the game. `/cn tooltips` toggles
   the whole thing, and reports which tooltip API resolved.

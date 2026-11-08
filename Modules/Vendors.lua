@@ -672,8 +672,11 @@ CN:RegisterCommand{
             local cost = ""
 
             if seller.price and seller.price > 0 then
-                cost = CN.Aside(GetCoinTextureString
-                    and GetCoinTextureString(seller.price)
+                -- `C_CurrencyInfo.GetCoinTextureString`; the global of the
+                -- same name was removed from the client. 1.15.0.
+                local coins = C_CurrencyInfo and C_CurrencyInfo.GetCoinTextureString
+
+                cost = CN.Aside(coins and coins(seller.price)
                     or (seller.price .. "c"))
             elseif seller.extendedCost then
                 cost = CN.Aside("costs a currency, not gold")

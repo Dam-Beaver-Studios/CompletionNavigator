@@ -1,12 +1,12 @@
-# Completion Navigator â€” Roadmap
+# Completion Navigator — Roadmap
 
-Current version: **0.24.0** Â· 42 Lua files Â· ~19,300 lines Â· 87 slash commands Â· 15 candidate providers Â· 10 UI tabs Â· 85% test coverage
+Current version: **0.24.0** · 42 Lua files · ~19,300 lines · 87 slash commands · 15 candidate providers · 10 UI tabs · 85% test coverage
 
 Completion Navigator is a product of Dam Beaver Studios, LLC. Authored by Travis A. Bryan I.
 
 This is an audit of what is built against what was designed, not a wishlist. Every item below was found by reading the code, not by imagining features.
 
-**A note on how defects get found here.** Two of the worst bugs so far â€” an arrow that pointed the wrong way, and an addon that could not see an unaccepted quest â€” survived a passing test suite because the *test data* had the same blind spot as the code. A stub that only models the cases the code already handles cannot fail. When adding tests, add the case the code does **not** handle first.
+**A note on how defects get found here.** Two of the worst bugs so far — an arrow that pointed the wrong way, and an addon that could not see an unaccepted quest — survived a passing test suite because the *test data* had the same blind spot as the code. A stub that only models the cases the code already handles cannot fail. When adding tests, add the case the code does **not** handle first.
 
 ---
 
@@ -15,36 +15,36 @@ This is an audit of what is built against what was designed, not a wishlist. Eve
 These are not roadmap items; they are the honest edges of what the addon can see.
 
 - **It sees available quests on your CURRENT map only**, because that is what the client's POI list exposes. It cannot enumerate every quest in the game, or tell you what is waiting three zones away.
-- **Eligibility filtering is mostly implicit.** The client only draws quest pins you qualify for, so class, race, level and faction gating is handled by not being shown â€” the addon's own eligibility rules exist but are backed by a nearly empty curated database, so it cannot proactively say *"that one is for a Druid."*
+- **Eligibility filtering is mostly implicit.** The client only draws quest pins you qualify for, so class, race, level and faction gating is handled by not being shown — the addon's own eligibility rules exist but are backed by a nearly empty curated database, so it cannot proactively say *"that one is for a Druid."*
 - **Alt recommendations are strongest for reputation, recipes, titles and professions**, where the addon has per-character data. For quests it is weaker, because it only knows what your characters have actually done.
 - **Turn-in locations come from the client's own "next waypoint"**, which moves as you progress. The addon models the three phases but does not have an independent database of turn-in NPCs.
 
 ---
 
-## Tier 1 â€” Holes in the core promise
+## Tier 1 — Holes in the core promise
 
 The addon claims to answer *"what should I do next?"* Each item here is a case where it currently cannot.
 
-### 1.1 Great Vault / weekly rewards â€” **DONE in 0.18.0**
+### 1.1 Great Vault / weekly rewards — **DONE in 0.18.0**
 
 **Status:** shipped. `/cn vault`, a Vault tab, and vault rows as candidates with urgency scaled by both distance-to-threshold and time-to-reset.
 
-This is the single largest recurring "what should I do next" signal in modern retail. A player with 2/8 dungeon runs toward a vault slot has a concrete, time-boxed, high-value objective, and the addon has nothing to say about it. Everything needed already exists â€” the opportunity scoring was built for exactly this shape of objective (real deadline, known progress, known reward).
+This is the single largest recurring "what should I do next" signal in modern retail. A player with 2/8 dungeon runs toward a vault slot has a concrete, time-boxed, high-value objective, and the addon has nothing to say about it. Everything needed already exists — the opportunity scoring was built for exactly this shape of objective (real deadline, known progress, known reward).
 
 **Delivers:** `/cn vault`, vault progress as candidates with genuine urgency weighting, a Now-tab section.
 **Risk:** low. Read-only API, well documented.
 **Effort:** moderate.
 **Recommendation: build first.** Highest value-to-effort ratio on the entire list.
 
-### 1.2 Subsystems tracked but never recommended â€” **DONE in 0.20.0**
+### 1.2 Subsystems tracked but never recommended — **DONE in 0.20.0**
 
-**Resolved:** Mounts, Toys, Professions and Appearances now register providers. Titles deliberately does not â€” the client exposes no source for a title, so there is no action to name; the harness asserts that absence so adding one later is a conscious choice.
+**Resolved:** Mounts, Toys, Professions and Appearances now register providers. Titles deliberately does not — the client exposes no source for a title, so there is no action to name; the harness asserts that absence so adding one later is a conscious choice.
 
 Historical detail below.
 
 #### Original finding
 
-**Status:** confirmed by audit. These modules scan, store and report â€” but register **no candidate provider**, so they never surface in `/cn next`:
+**Status:** confirmed by audit. These modules scan, store and report — but register **no candidate provider**, so they never surface in `/cn next`:
 
 | Module | Scans | Reports | Recommends |
 |---|---|---|---|
@@ -54,16 +54,16 @@ Historical detail below.
 | Titles | yes | yes | **no** |
 | Professions | yes | yes | **no** |
 
-Pets has a provider; Mounts does not. That inconsistency is not a design decision, it is an omission â€” and it means the Collections priority mode weights types that can never appear.
+Pets has a provider; Mounts does not. That inconsistency is not a design decision, it is an omission — and it means the Collections priority mode weights types that can never appear.
 
 The reason it was not obvious: `/cn breakdown` and the Collections tab read the stores directly, so the data *looks* wired up.
 
 **Delivers:** these become real recommendations where a source is known. Professions in particular should surface "your skill is 42/100 and you can train to 150".
 **Risk:** low, but needs the bounded-collection cap (already built) so 900 uncollected mounts do not flood the list.
-**Effort:** moderate â€” five providers, each small.
+**Effort:** moderate — five providers, each small.
 **Recommendation: build second.** It closes a stated capability the addon does not have.
 
-### 1.3 Delves â€” **assessed, deliberately not built**
+### 1.3 Delves — **assessed, deliberately not built**
 
 **Status:** `C_DelvesUI` exposes UI plumbing (minimum level and similar), not progress. Delve credit toward the Great Vault already flows through the World row built in 0.18.0, so a separate module would duplicate working behaviour with guesswork. Revisit if Blizzard ships a progress API.
 
@@ -71,22 +71,22 @@ The reason it was not obvious: `/cn breakdown` and the Collections tab read the 
 
 Evergreen current-expansion content with weekly progression, tied to the vault. Naturally pairs with 1.1.
 
-**Effort:** moderate. **Risk:** medium â€” the API surface has moved between patches.
+**Effort:** moderate. **Risk:** medium — the API surface has moved between patches.
 
 ### 1.4 Group content awareness
 
 **Status:** absent. Zero references to dungeons, raids, or LFG anywhere.
 
-The addon is entirely solo-content-aware. A meaningful share of what a player "should do next" is a dungeon or raid lockout. Even a modest version â€” "this raid lockout resets in 2 days and you have 3/8 bosses" â€” would be real.
+The addon is entirely solo-content-aware. A meaningful share of what a player "should do next" is a dungeon or raid lockout. Even a modest version — "this raid lockout resets in 2 days and you have 3/8 bosses" — would be real.
 
 **Effort:** large. **Risk:** medium.
-**Recommendation:** after 1.1â€“1.3. Scope carefully; this could sprawl.
+**Recommendation:** after 1.1–1.3. Scope carefully; this could sprawl.
 
 ---
 
-## Tier 2 â€” Existing features that are not yet load-bearing
+## Tier 2 — Existing features that are not yet load-bearing
 
-### 2.1 The dependency graph â€” **option 2 DONE in 0.22.0**
+### 2.1 The dependency graph — **option 2 DONE in 0.22.0**
 
 **Status:** observed orderings now promote into the graph once three distinct characters agree, published as `observedRequires` and reported as inference rather than fact. Option 1 (importing chains from BtWQuests) is still open and would add curated breadth on top.
 
@@ -94,47 +94,47 @@ The addon is entirely solo-content-aware. A meaningful share of what a player "s
 
 **Status:** exactly **one** `CN.AddDependency` call and **one** static quest row exist.
 
-`Dependencies.lua` is fully built â€” blocker reasons, graph walking, `/cn why`, prerequisite forensics. It has almost no data to walk. `/cn why` therefore answers "I don't know" for essentially every quest.
+`Dependencies.lua` is fully built — blocker reasons, graph walking, `/cn why`, prerequisite forensics. It has almost no data to walk. `/cn why` therefore answers "I don't know" for essentially every quest.
 
-0.17.0's `.\cn.ps1 harvest` closes the *collection* half of this: quest names, zones and coordinates now flow from SavedVariables into `Data\Quests.lua` automatically. It does **not** populate prerequisites, because prerequisites cannot be observed reliably â€” the addon records `maybeRequires` (quests completed shortly before another became available) and deliberately keeps it separate from fact.
+0.17.0's `.\cn.ps1 harvest` closes the *collection* half of this: quest names, zones and coordinates now flow from SavedVariables into `Data\Quests.lua` automatically. It does **not** populate prerequisites, because prerequisites cannot be observed reliably — the addon records `maybeRequires` (quests completed shortly before another became available) and deliberately keeps it separate from fact.
 
 **Options, in order of preference:**
 
 1. **Import prerequisite chains from BtWQuests at runtime.** The provider already exists and is probed. Extend it to feed the dependency graph rather than only answering name lookups. Zero curation burden, and it degrades quietly when BtWQuests is absent.
-2. **Promote `maybeRequires` to `requires` with a confidence threshold** â€” e.g. observed across 3+ characters. Honest, self-improving, needs no external data.
+2. **Promote `maybeRequires` to `requires` with a confidence threshold** — e.g. observed across 3+ characters. Honest, self-improving, needs no external data.
 3. Hand-curate. Does not scale, and is the reason the file is still empty.
 
 **Recommendation: option 1, then option 2.** Curation is not a strategy.
 
-### 2.2 Route quality â€” **DONE in 0.20.0**
+### 2.2 Route quality — **DONE in 0.20.0**
 
 **Status:** a 2-opt improvement pass now runs over the greedy result, removing 21.6% of the distance on the harness's crossed test case. Historically: `CN.OrderByProximity` was greedy nearest-neighbour only.
 
-Greedy nearest-neighbour is typically 15â€“25% worse than optimal and produces a characteristic failure: it strands one far objective and doubles back for it at the end. On a 12-stop zone sweep that is a visible, annoying detour.
+Greedy nearest-neighbour is typically 15–25% worse than optimal and produces a characteristic failure: it strands one far objective and doubles back for it at the end. On a 12-stop zone sweep that is a visible, annoying detour.
 
 **Fix:** a 2-opt improvement pass over the greedy result. Thirty lines, converges in milliseconds at this size, and typically recovers most of the gap.
 
 **Effort:** small. **Risk:** low. **Recommendation: build it.** Cheap and directly visible.
 
-### 2.3 Achievements only when nearly complete â€” **criteria now enumerated in 0.26.0**
+### 2.3 Achievements only when nearly complete — **criteria now enumerated in 0.26.0**
 
-**Status:** documented limitation â€” only achievements within 2 criteria become candidates.
+**Status:** documented limitation — only achievements within 2 criteria become candidates.
 
 Defensible as a default, and wrong as an absolute: a Goal pinned on an achievement should surface its criteria regardless of distance. Partly addressed by 0.17.0 Goals; worth extending so a pinned achievement decomposes into per-criterion objectives with locations.
 
 **Effort:** moderate. **Risk:** low.
 
-### 2.4 Appearances are per-category only â€” **sources now enumerated in 0.26.0**
+### 2.4 Appearances are per-category only — **sources now enumerated in 0.26.0**
 
 **Status:** documented limitation. Tracked per slot, not per item.
 
 Enumerating every appearance source is tens of thousands of entries, which is why it was scoped out. A middle path exists: enumerate appearances only for a **pinned goal**, on demand. Bounded work, real answer.
 
-**Effort:** moderate. **Risk:** medium â€” `C_TransmogCollection` enumeration is slow and needs the caching layer.
+**Effort:** moderate. **Risk:** medium — `C_TransmogCollection` enumeration is slow and needs the caching layer.
 
 ---
 
-## Tier 3 â€” Reach and polish
+## Tier 3 — Reach and polish
 
 ### 3.1 Localization
 
@@ -145,43 +145,43 @@ CurseForge asked about localization permissions at project setup, and the answer
 **Work:** extract strings to `Locales\enUS.lua` behind an `L[]` table, then let CurseForge's localization system handle translations. The extraction is mechanical and large; `cn.ps1` can generate the initial locale file by scanning for string literals.
 
 **Effort:** large but low-risk and highly parallelizable.
-**Recommendation:** do the *extraction* early â€” it gets harder every release. Translations can follow whenever.
+**Recommendation:** do the *extraction* early — it gets harder every release. Translations can follow whenever.
 
-### 3.2 LibDataBroker â€” **DONE in 0.21.0**
+### 3.2 LibDataBroker — **DONE in 0.21.0**
 
 **Status:** shipped as an optional integration, probed via LibStub and silent when absent. Historically: absent.
 
 Titan Panel and ElvUI users expect a datatext. A broker object showing the current recommendation, clickable to open the window, is roughly forty lines.
 
-**Effort:** small. **Risk:** low â€” but it is the first external library dependency, and the UI file's header explicitly notes that no libraries are embedded. Worth doing as an *optional* integration: detect LibStub, register if present, stay silent if not. Consistent with how TomTom/ATT/BtWQuests are handled.
+**Effort:** small. **Risk:** low — but it is the first external library dependency, and the UI file's header explicitly notes that no libraries are embedded. Worth doing as an *optional* integration: detect LibStub, register if present, stay silent if not. Consistent with how TomTom/ATT/BtWQuests are handled.
 
-### 3.3 Per-character settings â€” **DONE in 0.21.0**
+### 3.3 Per-character settings — **DONE in 0.21.0**
 
 **Status:** shipped. A proxy over the settings table resolves per-character overrides, stored sparsely so later default changes still reach everyone. Schema 2 -> 3. Historically: account-wide only.
 
 Priority mode in particular is character-shaped: a max-level main and a levelling alt want different answers. Auto-waypoint too.
 
-**Work:** a profile layer over `CN.Settings()`, with account-wide as the default and per-character override. Needs a migration (dbVersion 2 â†’ 3), and the migration ladder is already proven.
+**Work:** a profile layer over `CN.Settings()`, with account-wide as the default and per-character override. Needs a migration (dbVersion 2 → 3), and the migration ladder is already proven.
 
-**Effort:** moderate. **Risk:** low-medium â€” settings migrations are where data gets destroyed, and the existing test asserts against exactly that.
+**Effort:** moderate. **Risk:** low-medium — settings migrations are where data gets destroyed, and the existing test asserts against exactly that.
 
-### 3.4 Rare spawn alerts â€” **DONE in 0.21.0**
+### 3.4 Rare spawn alerts — **DONE in 0.21.0**
 
 **Status:** shipped, off by default. Historically: no alerting anywhere.
 
-Vignette detection already works. A rare appearing that you have not cleared is worth an optional sound and a screen message. Must be **off by default** â€” unsolicited noise is worse than seizing the waypoint.
+Vignette detection already works. A rare appearing that you have not cleared is worth an optional sound and a screen message. Must be **off by default** — unsolicited noise is worse than seizing the waypoint.
 
 **Effort:** small. **Risk:** low.
 
-### 3.5 Minimap/world map pins â€” **DONE in 0.25.0**
+### 3.5 Minimap/world map pins — **DONE in 0.25.0**
 
-Native navigation ships an on-screen arrow and sets a Blizzard map pin (0.19.0). The addon now also draws its own numbered pins for a whole zone sweep at once â€” one per hub, in route order, with the do-order in the tooltip.
+Native navigation ships an on-screen arrow and sets a Blizzard map pin (0.19.0). The addon now also draws its own numbered pins for a whole zone sweep at once — one per hub, in route order, with the do-order in the tooltip.
 
 Implemented as a pooled frame parented to the map canvas rather than as a `MapCanvasDataProvider`. The data-provider API is the blessed route and also a moving target that has broken addons across several expansions; the boring approach degrades to "no pins" instead of to a Lua error inside Blizzard's map code.
 
 **Still open here:** minimap pins for the nearest stop, and a pin for objectives whose coordinates are known but whose map is not the one on screen.
 
-### 2.5 Time-aware planning â€” **next**
+### 2.5 Time-aware planning — **next**
 
 The router knows real yard distances between stops, so travel time is computable. Task time is not, and must not be invented: a fabricated estimate would break the addon's own rule against numbers the game did not supply. The honest version measures travel and *learns* task duration from observed completions, in the same way prerequisites are already learned from play.
 
@@ -203,16 +203,16 @@ Deliberately after the above. Polish on top of thin features is lipstick.
 
 **Effort:** moderate. **Risk:** low.
 
-### 2.8 Stop persisting what the client already knows â€” **DONE in 0.36.0**
+### 2.8 Stop persisting what the client already knows — **DONE in 0.36.0**
 
 The saved-variables file is rewritten in full on every logout and parsed on every login. Measured at retail scale it was **1,275 KB**, and the largest single contributor was a copy of the client's own item cache: every vendor stored the *name* of every item it sold.
 
-Vendors are done â€” 488 KB to 160 KB, and the total to 947 KB. The same argument applies to two more stores, and the measurement is in `bench.lua` so the next attempt starts from a number rather than a hunch:
+Vendors are done — 488 KB to 160 KB, and the total to 947 KB. The same argument applies to two more stores, and the measurement is in `bench.lua` so the next attempt starts from a number rather than a hunch:
 
 | Store | Size | What is re-derivable |
 | --- | --- | --- |
-| `achievements` | 394 KB | `name`, `points` â€” both from `GetAchievementInfo` |
-| `pets` | 274 KB | `name` â€” from `GetPetInfoBySpeciesID` |
+| `achievements` | 394 KB | `name`, `points` — both from `GetAchievementInfo` |
+| `pets` | 274 KB | `name` — from `GetPetInfoBySpeciesID` |
 
 Both were done in 0.36.0, along with the per-row timestamps that four stores wrote and nothing read. **1,275 KB to 832 KB** across the two releases.
 
@@ -222,7 +222,7 @@ What remains is genuinely earned: quest observations, cross-character knowledge,
 
 ---
 
-## Tier 4 â€” Infrastructure
+## Tier 4 — Infrastructure
 
 ### 4.1 Player-to-player data sharing
 
@@ -230,23 +230,23 @@ What remains is genuinely earned: quest observations, cross-character knowledge,
 
 **Options:** a curated `Data\Community.lua` built from submitted exports (needs a submission path), or accepting an import string in-game. The former is a process problem more than a code problem.
 
-### 4.2 Test coverage measurement â€” **DONE in 0.21.0**
+### 4.2 Test coverage measurement — **DONE in 0.21.0**
 
-**Status:** luacov runs in the suite and in CI with an 80% floor; currently 85%. It immediately found the TomTom provider at 41% â€” shipped in every release, never executed by a test.
+**Status:** luacov runs in the suite and in CI with an 80% floor; currently 85%. It immediately found the TomTom provider at 41% — shipped in every release, never executed by a test.
 
 #### Original finding
 
-The harness and `pstest.sh` are strong but coverage is unmeasured â€” I do not know what fraction of the Lua is exercised. `luacov` under the harness would say.
+The harness and `pstest.sh` are strong but coverage is unmeasured — I do not know what fraction of the Lua is exercised. `luacov` under the harness would say.
 
 **Effort:** small. **Recommendation: do it.** It will find dead paths, and this project has now shipped three bugs that a test existed near but not on.
 
-### 4.3 Static analysis â€” **DONE in 0.18.0**
+### 4.3 Static analysis — **DONE in 0.18.0**
 
-luacheck runs over the Lua, configured for the client surface, baseline zero, enforced by the suite and CI. Historically: no linter ran over the Lua. `luacheck` catches globals-by-typo, unused locals and shadowing â€” the exact class of bug that a stubbed test harness hides. Add to `pstest.sh` and to CI.
+luacheck runs over the Lua, configured for the client surface, baseline zero, enforced by the suite and CI. Historically: no linter ran over the Lua. `luacheck` catches globals-by-typo, unused locals and shadowing — the exact class of bug that a stubbed test harness hides. Add to `pstest.sh` and to CI.
 
 **Effort:** small. **Risk:** none. **Recommendation: do it.**
 
-### 4.4 CI runs the tests â€” **DONE in 0.18.0**
+### 4.4 CI runs the tests — **DONE in 0.18.0**
 
 CI now lints and runs the full harness on every tagged build. Historically: `release.yml` syntax-checked Lua and verified the `.toc` but never ran `harness.lua`. The full suite runs only on my machine.
 

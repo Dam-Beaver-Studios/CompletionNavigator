@@ -1,6 +1,6 @@
 -- fixtures/captured.lua
 -- Recorded from a live World of Warcraft client by /cn capture and
--- lifted out of SavedVariables by cn.ps1 fixtures on 2026-08-22 05:41.
+-- lifted out of SavedVariables by cn.ps1 fixtures on 2026-11-08 13:34.
 --
 -- DO NOT EDIT. This is evidence, not source. The harness audits its own
 -- stubs against it: a stub missing a field that reality had is a test
@@ -9,11 +9,8 @@
 return {
 
 ["worldPosition"] = {
-["continentID"] = 2444,
+["continentID"] = 2927,
 ["shape"] = {
-["array"] = 0,
-["type"] = "table",
-["count"] = 18,
 ["fields"] = {
 ["GetXY"] = {
 ["value"] = "function",
@@ -32,7 +29,7 @@ return {
 ["type"] = "function",
 },
 ["y"] = {
-["value"] = 223.115478515625,
+["value"] = -3089.0673828125,
 ["type"] = "number",
 },
 ["GetLength"] = {
@@ -52,7 +49,7 @@ return {
 ["type"] = "function",
 },
 ["x"] = {
-["value"] = 4193.9208984375,
+["value"] = -1524.982421875,
 ["type"] = "number",
 },
 ["DivideBy"] = {
@@ -64,6 +61,10 @@ return {
 ["type"] = "function",
 },
 },
+["count"] = 18,
+["array"] = 0,
+["dropped"] = 6,
+["type"] = "table",
 },
 ["hasGetXY"] = true,
 },
@@ -77,38 +78,50 @@ return {
 ["type"] = "number",
 },
 ["mapID"] = {
-["value"] = 2022,
+["value"] = 2451,
 ["type"] = "number",
 },
 ["name"] = {
-["value"] = "The Waking Shores",
+["value"] = "Arathi Highlands",
 ["type"] = "string",
 },
 ["parentMapID"] = {
-["value"] = 1978,
+["value"] = 13,
 ["type"] = "number",
 },
 ["flags"] = {
-["value"] = 6,
+["value"] = 528388,
 ["type"] = "number",
 },
 },
 },
-["weeklyReset"] = {
-["seconds"] = 360819,
-},
-["interface"] = 120100,
-["mapSpanYards"] = {
-["yYards"] = 5320.830078125,
-["mapID"] = 2022,
-["square"] = false,
-["xYards"] = 7981.25,
-},
+["interface"] = 120105,
 ["savedInstances"] = {
 ["skipped"] = "not saved to anything",
 },
+["weeklyReset"] = {
+["seconds"] = 156380,
+},
+["apiSurface"] = {
+["examined"] = 212,
+["present"] = 206,
+["missing"] = {
+"C_Heirloom.GetHeirloomItemIDFromIndex",
+"C_TaskQuest.GetQuestsForPlayerByMapID",
+"C_TradeSkillUI.GetTradeSkillLine",
+"EJ_GetCurrentInstance",
+"GetCoinTextureString",
+"GetMerchantItemInfo",
+},
+},
+["mapSpanYards"] = {
+["yYards"] = 2318.75244140625,
+["mapID"] = 2451,
+["square"] = false,
+["xYards"] = 3477.08984375,
+},
+["build"] = "1.14.0",
 ["locale"] = "enUS",
-["build"] = "0.46.0",
 ["achievementCriteria"] = {
 ["shape"] = {
 ["array"] = 0,
@@ -116,19 +129,19 @@ return {
 ["count"] = 5,
 ["fields"] = {
 ["completed"] = {
-["value"] = false,
+["value"] = true,
 ["type"] = "boolean",
 },
 ["quantity"] = {
-["value"] = 0,
+["value"] = 200,
 ["type"] = "number",
 },
 ["required"] = {
-["value"] = 1,
+["value"] = 200,
 ["type"] = "number",
 },
 ["description"] = {
-["value"] = "Cragscale",
+["value"] = "Obtain 200 mounts",
 ["type"] = "string",
 },
 ["index"] = {
@@ -139,32 +152,37 @@ return {
 },
 ["counted"] = true,
 },
+["events"] = {
+["refused"] = {
+},
+["accepted"] = 53,
+},
 ["position"] = {
-["y"] = 0.2215810418128967,
-["mapID"] = 2022,
-["x"] = 0.5554436445236206,
+["y"] = 0.5965772867202759,
+["mapID"] = 2451,
+["x"] = 0.5642613172531128,
 },
 ["completedQuests"] = {
-["count"] = 302,
+["count"] = 6735,
 },
 ["encounterJournal"] = {
 ["available"] = true,
 },
-["recorded"] = 1787309180,
+["recorded"] = 1794166419,
 ["questPOI"] = {
 ["questStarts"] = 0,
-["count"] = 4,
+["count"] = 3,
 ["shape"] = {
 ["array"] = 0,
 ["type"] = "table",
 ["count"] = 8,
 ["fields"] = {
 ["y"] = {
-["value"] = 0.2302113771438599,
+["value"] = 0.5974474549293518,
 ["type"] = "number",
 },
 ["x"] = {
-["value"] = 0.554706335067749,
+["value"] = 0.527717113494873,
 ["type"] = "number",
 },
 ["isDaily"] = {
@@ -172,7 +190,7 @@ return {
 ["type"] = "boolean",
 },
 ["mapID"] = {
-["value"] = 2022,
+["value"] = 2451,
 ["type"] = "number",
 },
 ["isQuestStart"] = {
@@ -180,7 +198,7 @@ return {
 ["type"] = "boolean",
 },
 ["questID"] = {
-["value"] = 65998,
+["value"] = 90885,
 ["type"] = "number",
 },
 ["inProgress"] = {

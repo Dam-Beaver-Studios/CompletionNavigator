@@ -14,7 +14,7 @@
     Run:  .\ci-status.ps1
 #>
 
-$repo    = "Dam-Beaver-Studios-LLC/CompletionNavigator"
+$repo    = "Dam-Beaver-Studios/CompletionNavigator"
 $headers = @{ "User-Agent" = "CompletionNavigator"; "Accept" = "application/vnd.github+json" }
 
 function Format-Age {

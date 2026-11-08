@@ -6,7 +6,7 @@ Authored by **Travis A. Bryan I**. Owned, published and maintained by **Dam Beav
 
 Most completion addons answer *what am I missing?* Completion Navigator is built to answer a different question:
 
-> Given everything I have already completed, everything I can currently obtain, my current character, location, restrictions and prerequisites â€” **what should I do next?**
+> Given everything I have already completed, everything I can currently obtain, my current character, location, restrictions and prerequisites — **what should I do next?**
 
 ## What it does
 
@@ -26,7 +26,7 @@ Run `/cn setup` once, then type `/cn next` or click the minimap button. The addo
 |---|---|
 | Quests | Event-driven discovery, account vs character completion, coordinates from four client sources |
 | Reputations | Standing, Renown, Paragon; account-wide vs character-specific scope |
-| Achievements | Focused on near-completion â€” what is within two criteria of finishing |
+| Achievements | Focused on near-completion — what is within two criteria of finishing |
 | Battle pets | Collected counts, wild/obtainable classification |
 | Mounts | Faction-lock detection |
 | Toys | Collection state |
@@ -39,7 +39,7 @@ Run `/cn setup` once, then type `/cn next` or click the minimap button. The addo
 
 `/cn` for status, `/cn help` for the full list, `/cn ui` for the window.
 
-The window has eight tabs â€” Next, Now, Zone, Warband, Collections, Remaining, Scans, Settings â€” and everything the slash commands do is reachable by clicking. Keybindings live under Key Bindings â†’ AddOns.
+The window has eight tabs — Next, Now, Zone, Warband, Collections, Remaining, Scans, Settings — and everything the slash commands do is reachable by clicking. Keybindings live under Key Bindings → AddOns.
 
 ## Known limitations
 
@@ -54,7 +54,7 @@ These are honest constraints, not oversights:
 
 ## Optional integrations
 
-**TomTom** is optional as of 0.19.0. Navigation is native â€” the addon draws its own arrow, computes its own bearings, and converts to real yards through the client's world positions. `/cn nav` switches between native, TomTom and Blizzard map pins.
+**TomTom** is optional as of 0.19.0. Navigation is native — the addon draws its own arrow, computes its own bearings, and converts to real yards through the client's world positions. `/cn nav` switches between native, TomTom and Blizzard map pins.
 
 **AllTheThings** and **BtWQuests** are read at runtime for quest names, coordinates, source quests and prerequisite chains. Their internals are not published contracts, so every access is probed and wrapped: an update to either can make a provider go quiet, but cannot break Completion Navigator. `/cn providers` reports exactly what resolved.
 
@@ -64,7 +64,7 @@ None are required.
 
 `/cn goal <type> <id>` pins a target. It becomes a candidate in its own right, anything leading to it is weighted up and says why, and `/cn goals` reports the known route: source, location, best-placed character, next step. Where nothing is known it says so and names what would make it knowable.
 
-Three relationships count as "leads to a goal", deliberately narrow ones the addon can actually establish: it *is* the goal, it unlocks the goal per the dependency graph, or it is in the same zone as a located goal. The third is weighted weakly â€” being in the right place is worth something, but it is not progress.
+Three relationships count as "leads to a goal", deliberately narrow ones the addon can actually establish: it *is* the goal, it unlocks the goal per the dependency graph, or it is in the same zone as a located goal. The third is weighted weakly — being in the right place is worth something, but it is not progress.
 
 ## Performance
 
@@ -113,7 +113,7 @@ developer@dambeaverstudios.com.
 Released under the MIT License.
 
 Copyright (c) 2026 **Dam Beaver Studios, LLC**. All right, title and interest in
-this work â€” including the copyright, the project, and its distribution channels â€”
+this work — including the copyright, the project, and its distribution channels —
 is held and controlled by Dam Beaver Studios, LLC. Authorship credit: Travis A. Bryan I.
 
 See [LICENSE](LICENSE).

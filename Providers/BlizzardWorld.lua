@@ -87,10 +87,6 @@ function Blizzard.GetOpenTradeSkillLine()
         end
     end
 
-    if C_TradeSkillUI and C_TradeSkillUI.GetTradeSkillLine then
-        return C_TradeSkillUI.GetTradeSkillLine()
-    end
-
     return nil, nil
 end
 
@@ -304,11 +300,15 @@ end
 function Blizzard.GetWorldQuestsOnMap(uiMapID)
     local results = {}
 
-    if not uiMapID or not C_TaskQuest or not C_TaskQuest.GetQuestsForPlayerByMapID then
+    -- `GetQuestsOnMap`, NOT `GetQuestsForPlayerByMapID`. 1.15.0. The old
+    -- name was removed from the client and the guard below went false
+    -- without a sound: no world quests on any map, for every player, until
+    -- a capture from a live 12.1.5 client listed the name as missing.
+    if not uiMapID or not C_TaskQuest or not C_TaskQuest.GetQuestsOnMap then
         return results
     end
 
-    local ok, tasks = pcall(C_TaskQuest.GetQuestsForPlayerByMapID, uiMapID)
+    local ok, tasks = pcall(C_TaskQuest.GetQuestsOnMap, uiMapID)
 
     if not ok or type(tasks) ~= "table" then
         return results
@@ -1277,20 +1277,24 @@ end
 function Blizzard.GetTaskQuestsOnMap(uiMapID)
     local tasks = {}
 
-    if not uiMapID or not C_TaskQuest or not C_TaskQuest.GetQuestsForPlayerByMapID then
+    if not uiMapID or not C_TaskQuest or not C_TaskQuest.GetQuestsOnMap then
         return tasks
     end
 
-    local ok, results = pcall(C_TaskQuest.GetQuestsForPlayerByMapID, uiMapID)
+    local ok, results = pcall(C_TaskQuest.GetQuestsOnMap, uiMapID)
 
     if not ok or type(results) ~= "table" then
         return tasks
     end
 
     for _, task in ipairs(results) do
-        if type(task) == "table" and task.questId then
+        -- `questID` is what `GetQuestsOnMap` returns; `questId` was the old
+        -- function's spelling and is still accepted.
+        local taskQuestID = type(task) == "table" and (task.questID or task.questId)
+
+        if taskQuestID then
             table.insert(tasks, {
-                questID = task.questId,
+                questID = taskQuestID,
                 x       = task.x,
                 y       = task.y,
                 mapID   = task.mapID or uiMapID,
@@ -1368,21 +1372,23 @@ function Blizzard.GetMerchantItems()
         return items
     end
 
+    -- `C_MerchantFrame.GetItemInfo`, NOT `GetMerchantItemInfo`. 1.15.0.
+    -- The global was removed from the client, and it was the gate on this
+    -- whole loop: every merchant read as empty, so vendors stopped being
+    -- recorded at all. The table it returns carries the same values by name.
+    if not C_MerchantFrame or not C_MerchantFrame.GetItemInfo then
+        return items
+    end
+
     for index = 1, count do
-        local gotInfo, name, texture, price, quantity, numAvailable,
-              isPurchasable, isUsable, extendedCost =
-              pcall(GetMerchantItemInfo, index)
+        local gotInfo, info = pcall(C_MerchantFrame.GetItemInfo, index)
 
-        if gotInfo and name then
-            local itemID
+        local name = gotInfo and type(info) == "table" and info.name or nil
 
-            if C_MerchantFrame and C_MerchantFrame.GetItemInfo then
-                local gotItem, info = pcall(C_MerchantFrame.GetItemInfo, index)
-
-                if gotItem and type(info) == "table" then
-                    itemID = info.itemID
-                end
-            end
+        if name then
+            local itemID = info.itemID
+            local price, numAvailable = info.price, info.numAvailable
+            local isPurchasable, extendedCost = info.isPurchasable, info.hasExtendedCost
 
             if not itemID and GetMerchantItemLink then
                 local gotLink, link = pcall(GetMerchantItemLink, index)
@@ -1868,11 +1874,16 @@ local function WithJournal(work)
 
     local restoreInstance
 
-    if EJ_GetCurrentInstance then
-        local gotCurrent, current = pcall(EJ_GetCurrentInstance)
+    -- WHAT THE JOURNAL IS SHOWING, READ FROM THE JOURNAL. 1.15.0.
+    -- `EJ_GetCurrentInstance` is gone from the client, so the instance to put
+    -- back is the one Blizzard's own Adventure Guide frame records when it
+    -- displays an instance. Nil until the player has opened the guide, which
+    -- falls through to the clear below, exactly as an empty selection did.
+    if type(EncounterJournal) == "table" then
+        local shown = EncounterJournal.instanceID
 
-        if gotCurrent then
-            restoreInstance = current
+        if type(shown) == "number" then
+            restoreInstance = shown
         end
     end
 
@@ -1884,7 +1895,7 @@ local function WithJournal(work)
     -- AND "NOTHING WAS SELECTED" IS A STATE TO RESTORE.
     --
     -- The restore was guarded on `restoreInstance`, and
-    -- `EJ_GetCurrentInstance` returns nil whenever the player has not opened
+    -- the selection read above is nil whenever the player has not opened
     -- the Adventure Guide this session -- which is the ordinary case, since
     -- this function refuses to run at all while the window is up. So on
     -- virtually every real invocation nothing was restored and the player's

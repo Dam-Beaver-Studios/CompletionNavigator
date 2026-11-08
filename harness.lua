@@ -1615,9 +1615,16 @@ function EJ_SelectInstance(instanceID)
     CN_TEST_EJ_SELECTED = instanceID
 end
 
-function EJ_GetCurrentInstance()
-    return CN_TEST_EJ_SELECTED
-end
+-- `EJ_GetCurrentInstance` is gone from 12.1.5 (the capture lists it as
+-- missing). What the addon restores now is what Blizzard's own Adventure
+-- Guide frame records as the instance it is displaying.
+setmetatable(EncounterJournal, {
+    __index = function(_, key)
+        if key == "instanceID" then
+            return CN_TEST_EJ_SELECTED
+        end
+    end,
+})
 
 function EJ_GetInstanceInfo(instanceID)
     local entry = CN_TEST_EJ_INSTANCES[instanceID or CN_TEST_EJ_SELECTED]
@@ -2120,11 +2127,13 @@ end
 
 C_TaskQuest = {
     GetQuestZoneID = function() return nil end,
-    GetQuestsForPlayerByMapID = function(mapID)
+    -- `GetQuestsOnMap`, the 12.1.5 name, with the fields it returns
+    -- (`questID`, not the removed function's `questId`).
+    GetQuestsOnMap = function(mapID)
         if mapID ~= 94 then return {} end
         local out = {}
         for _, wq in ipairs(worldQuests) do
-            table.insert(out, { questId = wq.questID, mapID = wq.mapID, x = wq.x, y = wq.y })
+            table.insert(out, { questID = wq.questID, mapID = wq.mapID, x = wq.x, y = wq.y })
         end
         return out
     end,
@@ -2955,10 +2964,18 @@ local merchantItems = {
 
 function GetMerchantNumItems() return #merchantItems end
 
-function GetMerchantItemInfo(i)
+-- `C_MerchantFrame.GetItemInfo`, the 12.1.5 call: one table per slot, no
+-- item id in it (the link carries that), as the client returns it.
+C_MerchantFrame = C_MerchantFrame or {}
+
+C_MerchantFrame.GetItemInfo = function(i)
     local it = merchantItems[i]
     if not it then return nil end
-    return it.name, 1, it.price, 1, 1, true, true, false
+    return {
+        name = it.name, texture = 1, price = it.price, stackCount = 1,
+        numAvailable = 1, isPurchasable = true, isUsable = true,
+        hasExtendedCost = false, isQuestStartItem = false,
+    }
 end
 
 function GetMerchantItemLink(i)
@@ -3570,7 +3587,9 @@ CN_TEST_DAILY_RESET_AT = nil
 -- The client's own money formatter. Guarded at its one call site, because a
 -- client without it should print a bare number rather than nothing -- and a
 -- stub that always answers makes that guard unreachable.
-function GetCoinTextureString(copper)
+C_CurrencyInfo = C_CurrencyInfo or {}
+
+function C_CurrencyInfo.GetCoinTextureString(copper)
     if type(copper) ~= "number" then
         return nil
     end
@@ -11083,7 +11102,28 @@ print("\nStubs, audited against a real client:")
         -- This is the only way to tell those two apart, and it needs a real
         -- client: the stub cannot help, because the stub defines whatever the
         -- addon happens to call.
-        return #(real.apiSurface.missing or {}) == 0
+        --
+        -- AGAINST THE NAMES THIS BUILD CALLS, NOT THE BUILD THAT RECORDED.
+        -- 1.15.0. The recording lists what the client lacked from the surface
+        -- of the build that took it. A name that build called and this one
+        -- no longer does was moved off, which is the fix for the finding --
+        -- counting it would make the audit fail forever on the cure. A name
+        -- still in `CN.apiSurface` and absent from the client is the defect.
+        local calls = {}
+
+        for _, name in ipairs(CN.apiSurface or {}) do
+            calls[name] = true
+        end
+
+        local stillCalled = 0
+
+        for _, name in ipairs(real.apiSurface.missing or {}) do
+            if calls[name] then
+                stillCalled = stillCalled + 1
+            end
+        end
+
+        return stillCalled == 0
     end, "the live client does not have every API this addon calls")
 
     require("savedInstances", function()
@@ -11112,8 +11152,19 @@ print("\nStubs, audited against a real client:")
     -- A complaint that says "an API is missing" without saying WHICH costs an
     -- hour to act on.
     if real.apiSurface then
+        local calls = {}
+
+        for _, name in ipairs(CN.apiSurface or {}) do
+            calls[name] = true
+        end
+
         for _, name in ipairs(real.apiSurface.missing or {}) do
-            print("    the client has no " .. name)
+            if calls[name] then
+                print("    the client has no " .. name)
+            else
+                print("    the client has no " .. name
+                    .. " (no longer called by this build)")
+            end
         end
     end
 
@@ -26877,7 +26928,7 @@ print("\nWhat is on a clock, in detail:")
     ------------------------------------------------------------
     C_Heirloom = {
         GetNumHeirlooms = function() return 3 end,
-        GetHeirloomItemIDFromIndex = function(index) return 70000 + index end,
+        GetHeirloomItemIDs = function() return { 70001, 70002, 70003 } end,
         PlayerHasHeirloom = function(itemID) return itemID == 70001 end,
     }
 

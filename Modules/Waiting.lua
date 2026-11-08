@@ -342,12 +342,23 @@ function Waiting.Heirlooms()
         return nil
     end
 
+    -- `GetHeirloomItemIDs`, NOT `GetHeirloomItemIDFromIndex`. 1.15.0. The
+    -- per-index call was removed from the client; the list it walked is now
+    -- handed over whole.
+    if not C_Heirloom.GetHeirloomItemIDs then
+        return nil
+    end
+
+    local gotIDs, itemIDs = pcall(C_Heirloom.GetHeirloomItemIDs)
+
+    if not gotIDs or type(itemIDs) ~= "table" then
+        return nil
+    end
+
     local collected = 0
 
-    for index = 1, total do
-        local gotID, itemID = pcall(C_Heirloom.GetHeirloomItemIDFromIndex, index)
-
-        if gotID and itemID then
+    for _, itemID in ipairs(itemIDs) do
+        if itemID then
             local gotOwned, owned = pcall(C_Heirloom.PlayerHasHeirloom, itemID)
 
             if gotOwned and owned then
