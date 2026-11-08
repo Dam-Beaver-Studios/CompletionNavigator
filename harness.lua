@@ -44184,4 +44184,42 @@ end)()
     print("  every file that presents the caveat is one this suite covers")
 end)()
 
+------------------------------------------------------------
+-- NO LOCALE FILE CARRIES DOUBLE-ENCODED TEXT. 1.15.1.
+--
+-- Every non-English locale shipped from September to 1.15.0 had been saved
+-- through a Windows code page at some point, so a Russian player read
+-- "Ð”Ð°Ð»ÐµÐµ" where the file meant "Далее". Lua does not care what bytes
+-- a string holds and the suite only ever compared keys, so nothing failed. A
+-- double-encoded character is a lead byte of U+00C0..U+00FF (C3 xx) followed
+-- by the UTF-8 form of a cp1252 punctuation or Latin-1 character (C2, C5,
+-- C6, CB or E2) -- a pairing no real translation in these eleven languages
+-- produces.
+------------------------------------------------------------
+print("\nLocale files are UTF-8, not UTF-8 read as Windows-1252:")
+
+;(function()
+    local checked, bad = 0, {}
+
+    for _, relative in ipairs(CN_TEST_ADDON_FILES or {}) do
+        if relative:match("^Locales/") then
+            local text = CN_TEST_ReadAddonFile(relative)
+
+            if text then
+                checked = checked + 1
+
+                if text:find("\195[\128-\191][\194\197\198\203\226]") then
+                    table.insert(bad, relative)
+                end
+            end
+        end
+    end
+
+    assert(checked >= 10, "every locale file is read, got " .. checked)
+
+    assert(#bad == 0, "double-encoded text in " .. table.concat(bad, ", "))
+
+    print("  " .. checked .. " locale files, none double-encoded")
+end)()
+
 print("\nALL HARNESS CHECKS PASSED")

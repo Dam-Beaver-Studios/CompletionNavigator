@@ -9,7 +9,7 @@
 local ADDON_NAME, CN = ...
 
 CN.RegisterLocale("deDE", {
-    ["Next"] = "NÃ¤chstes",
+    ["Next"] = "Nächstes",
     ["Zone"] = "Zone",
     ["Scans"] = "Scans",
     ["Now"] = "Jetzt",
@@ -25,11 +25,11 @@ CN.RegisterLocale("deDE", {
     ["no position"] = "keine Position",
     ["another zone"] = "andere Zone",
     ["Arrived: %s"] = "Angekommen: %s",
-    ["Now heading to: %s"] = "NÃ¤chstes Ziel: %s",
+    ["Now heading to: %s"] = "Nächstes Ziel: %s",
     ["ahead"] = "geradeaus",
     ["veer"] = "abbiegen",
     ["turn"] = "wenden",
-    ["back"] = "zurÃ¼ck",
+    ["back"] = "zurück",
     ["account-wide"] = "kontoweit",
     ["nothing actionable"] = "nichts zu tun",
     ["Stop cleared"] = "Station erledigt",
@@ -38,18 +38,18 @@ CN.RegisterLocale("deDE", {
     ["All %d stops done."] = "Alle %d Stopps erledigt.",
     ["All 1 stop done."] = "Alle 1 Stopp erledigt.",
     ["stop %d of %d"] = "Stopp %d von %d",
-    ["estimated"] = "geschÃ¤tzt",
+    ["estimated"] = "geschätzt",
     ["unknown"] = "unbekannt",
     ["solo"] = "allein",
     ["dead"] = "tot",
     ["grouped"] = "in einer Gruppe",
     ["instanced"] = "in einer Instanz",
     ["%d more"] = "noch %d",
-    ["Nothing is on a clock right now."] = "Nichts lÃ¤uft gerade ab.",
+    ["Nothing is on a clock right now."] = "Nichts läuft gerade ab.",
 
     -- 1.10.0. The words the addon says instead of presenting an answer
     -- built from data it knows has not arrived yet.
-    ["Still hearing back about %s; this may change."] = "Warte noch auf %s; das kann sich noch Ã¤ndern.",
+    ["Still hearing back about %s; this may change."] = "Warte noch auf %s; das kann sich noch ändern.",
     ["your lockouts"] = "deine Instanz-Sperren",
     ["your mailbox"] = "deine Post",
     ["The replies landed: %s rather than %s."] = "Die Antworten sind da: %s statt %s.",

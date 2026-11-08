@@ -7,6 +7,33 @@ Authored by Travis A. Bryan I.
 
 ## [Unreleased]
 
+## [1.15.1]
+
+**Every language but English read as garbage, and had since September.**
+
+The ten translated locale files had been saved through a Windows code page
+at some point, so each character outside ASCII was stored as two or three
+others: a Russian player saw "Ð”Ð°Ð»ÐµÐµ" where the file meant "Далее", and
+Korean and Chinese read the same way. Lua does not mind what bytes a string
+holds, and the suite compared translation keys rather than what the strings
+said, so nothing failed. ZamestoTV reported it by sending a corrected Russian
+file on 09/10; it sat unmerged for two months, which is its own finding.
+
+### Fixed
+
+- **German, Spanish (both), French, Italian, Korean, Portuguese, Russian and
+  both Chinese scripts read correctly.** The bytes are repaired; no
+  translation was changed in the repair.
+
+- **Russian, corrected by a native speaker.** ZamestoTV's pull request #3:
+  sixteen strings reworded and six added (Warband, Vault, veer, Route
+  complete, solo, instanced). Thank you.
+
+- **A locale file carrying double-encoded text fails the build.** The check
+  looks for the byte pairing a code-page round trip leaves behind and that no
+  real translation in these languages produces, and it fails all ten of the
+  files as they were.
+
 ## [1.15.0]
 
 **Six client functions this addon calls had been removed from the game, and

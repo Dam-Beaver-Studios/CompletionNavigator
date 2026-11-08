@@ -1,5 +1,5 @@
 -- Locales/esMX.lua
--- EspaÃ±ol de MÃ©xico.
+-- Español de México.
 --
 -- Only strings whose translation is certain are listed. A key left out falls
 -- back to English, which is a better outcome than a confident guess: a player
@@ -14,7 +14,7 @@ CN.RegisterLocale("esMX", {
     ["Scans"] = "Escaneos",
     ["Now"] = "Ahora",
     ["Warband"] = "Banda de guerra",
-    ["Vault"] = "CÃ¡mara",
+    ["Vault"] = "Cámara",
     ["Goals"] = "Objetivos",
     ["Journey"] = "Viaje",
     ["Remaining"] = "Restante",
@@ -22,12 +22,12 @@ CN.RegisterLocale("esMX", {
     ["Settings"] = "Ajustes",
     ["Destination"] = "Destino",
     ["distance unknown"] = "distancia desconocida",
-    ["no position"] = "sin posiciÃ³n",
+    ["no position"] = "sin posición",
     ["another zone"] = "otra zona",
     ["Arrived: %s"] = "Has llegado: %s",
     ["Now heading to: %s"] = "Ahora hacia: %s",
     ["ahead"] = "recto",
-    ["veer"] = "desvÃ­a",
+    ["veer"] = "desvía",
     ["turn"] = "gira",
     ["back"] = "date la vuelta",
     ["account-wide"] = "para toda la cuenta",
@@ -44,12 +44,12 @@ CN.RegisterLocale("esMX", {
     ["dead"] = "muerto",
     ["grouped"] = "en grupo",
     ["instanced"] = "en una instancia",
-    ["%d more"] = "%d mÃ¡s",
+    ["%d more"] = "%d más",
     ["Nothing is on a clock right now."] = "Nada caduca ahora mismo.",
 
     -- 1.10.0. The words the addon says instead of presenting an answer
     -- built from data it knows has not arrived yet.
-    ["Still hearing back about %s; this may change."] = "AÃºn esperando %s; esto puede cambiar.",
+    ["Still hearing back about %s; this may change."] = "Aún esperando %s; esto puede cambiar.",
     ["your lockouts"] = "tus bloqueos de banda",
     ["your mailbox"] = "tu correo",
     ["The replies landed: %s rather than %s."] = "Llegaron las respuestas: %s en lugar de %s.",
